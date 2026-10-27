@@ -86,9 +86,105 @@ const registrarAnotacion = (req, res) => {
   });
 };
 
+// HU-04: Registrar una versión de Trabajo de Título
+const registrarVersionTrabajo = (req, res) => {
+  const trabajoId = req.params.id;
+  const { contenido } = req.body;
+
+  // HU-04 CA4: contenido obligatorio
+  if (!contenido || !contenido.trim()) {
+    return res.status(400).json({
+      error: 'El contenido de la versión es obligatorio'
+    });
+  }
+
+  // Primero consultar el Trabajo de Título
+  database.query(
+    'SELECT id, estado FROM trabajo_de_titulo WHERE id = ?',
+    [trabajoId],
+    (err, trabajos) => {
+      if (err) {
+        return res.status(500).json({
+          error: 'Error al consultar el Trabajo de Título'
+        });
+      }
+
+      if (!trabajos[0]) {
+        return res.status(404).json({
+          error: 'Trabajo de Título no encontrado'
+        });
+      }
+
+      // HU-04 CA2: bloquear si está completado
+      if (trabajos[0].estado === 'completado') {
+        return res.status(409).json({
+          error: 'No se permiten nuevas versiones para un Trabajo de Título completado'
+        });
+      }
+
+      // Buscar última versión
+      database.query(
+        `
+        SELECT id, numero_version
+        FROM version_tt
+        WHERE trabajo_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+        `,
+        [trabajoId],
+        (err2, versiones) => {
+          if (err2) {
+            return res.status(500).json({
+              error: 'Error al consultar las versiones existentes'
+            });
+          }
+
+          let nuevoNumero = '1.0';
+
+          if (versiones[0]) {
+            const numeroActual = parseFloat(versiones[0].numero_version);
+            nuevoNumero = (numeroActual + 1).toFixed(1);
+          }
+
+          // CA1 y CA3
+          database.query(
+            `
+            INSERT INTO version_tt
+              (trabajo_id, numero_version, fecha_entrega, contenido)
+            VALUES (?, ?, CURDATE(), ?)
+            `,
+            [trabajoId, nuevoNumero, contenido.trim()],
+            (err3, result) => {
+              if (err3) {
+                return res.status(500).json({
+                  error: 'Error al registrar la nueva versión'
+                });
+              }
+
+              database.query(
+                'SELECT * FROM version_tt WHERE id = ?',
+                [result.insertId],
+                (err4, rows) => {
+                  if (err4) {
+                    return res.status(500).json({
+                      error: 'La versión fue registrada, pero no pudo recuperarse'
+                    });
+                  }
+
+                  res.status(201).json(rows[0]);
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
+};
 module.exports = {
   getSeguimientoTrabajo,
   getVersionesTrabajo,
   getVersionDetalle,
   registrarAnotacion,
+  registrarVersionTrabajo,
 };

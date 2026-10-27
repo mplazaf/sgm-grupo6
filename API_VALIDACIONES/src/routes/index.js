@@ -6,5 +6,6 @@ router.get('/api/trabajos/:id/seguimiento', index.getSeguimientoTrabajo);
 router.get('/api/trabajos/:id/versiones', index.getVersionesTrabajo);
 router.get('/api/versiones/:id', index.getVersionDetalle);
 router.post('/api/versiones/:id/anotaciones', index.registrarAnotacion);
+router.post('/api/trabajos/:id/versiones', index.registrarVersionTrabajo);
 
 module.exports = router;
