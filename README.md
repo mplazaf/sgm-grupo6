@@ -19,6 +19,12 @@ La documentación correspondiente al proyecto se encuentra disponible en la Wiki
 
 [Ir a la Wiki](https://gitlab.inf.utfsm.cl/inf236-cc-2026-2/grupo06-2026-proyinf/-/wikis/home)
 
+## Video del prototipo
+
+El video de demostración correspondiente al Hito 3 se encuentra disponible en el siguiente enlace:
+
+[Ver video del prototipo](https://onedrive.live.com/?qt=allmyphotos&photosData=%2Fshare%2F52BFE67361D9DD8B%21s5e7e5d63e5c14c1ba4c769d96a7e1d8f%3Fithint%3Dvideo%26e%3D8Vfkka%26migratedtospo%3Dtrue&cid=52BFE67361D9DD8B&id=52BFE67361D9DD8B%21s5e7e5d63e5c14c1ba4c769d96a7e1d8f&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3YvYy81MmJmZTY3MzYxZDlkZDhiL0lRQmpYWDVld2VVYlRLVEhhZGxxZmgyUEFWNXhNejM0TDNJdjhBeS1fSHJGMW1BP2U9OFZma2th&v=photos)
+
 # Aspectos técnicos
 
 ## Tecnologías utilizadas
@@ -166,114 +172,96 @@ DB_HOST="host.docker.internal"
 Los nombres `BD06_TRAMITACION` y `BD06_VALIDACIONES` corresponden al número del grupo, en este caso **Grupo 06**.
 
 ---
+## Cómo levantar el proyecto
 
-# Cómo levantar el proyecto
-
-## 1. Requisitos previos
+### 1. Requisitos previos
 
 Se debe contar con:
 
 - Git
-- Docker Desktop
+- Docker
 - Docker Compose
+- Python 3
 
-Docker Desktop debe estar abierto y en ejecución.
+> En Linux, si el usuario no está agregado al grupo `docker`, anteponer `sudo` a los comandos de `docker compose` que aparecen a continuación.
 
-Versiones utilizadas durante la verificación del equipo:
 
-```text
-Docker version 29.8.0
-Docker Compose version v5.5.1
-```
-
-## 2. Clonar el repositorio
+### 2. Clonar el repositorio
 
 ```bash
 git clone https://gitlab.inf.utfsm.cl/inf236-cc-2026-2/grupo06-2026-proyinf.git
 cd grupo06-2026-proyinf
 ```
 
-## 3. Configurar variables de entorno
+### 3. Configurar variables de entorno
 
-Verificar que los archivos `.env` de cada API contengan las variables indicadas en la sección **Variables de configuración**.
+Verificar los archivos `.env` incluidos en cada API (`API_EJEMPLO`, `API_TRAMITACION` y `API_VALIDACIONES`) y ajustar sus valores si es necesario según la configuración local.
 
-El proyecto utiliza:
+### 4. Levantar API_EJEMPLO y MySQL
 
-```text
-PORT_API
-DB_USER
-DB_PASSWORD
-DB_NAME
-DB_PORT
-DB_HOST
-```
-
-## 4. Levantar API_EJEMPLO y MySQL
-
-Desde la carpeta principal ejecutar:
+Desde la carpeta raíz del repositorio:
 
 ```bash
 docker compose up --build
 ```
 
-Esperar hasta visualizar:
+Esperar hasta visualizar: Server running!
 
-```text
-Server running!
-```
 
-Luego verificar:
+### 5. Levantar las demás API
 
-```text
-http://localhost:8082/api/pais
-```
-
-Si la ejecución es correcta, la API responderá con información en formato JSON.
-
-## 5. Levantar las demás API
-
-Para `API_TRAMITACION`:
+Para API_TRAMITACION:
 
 ```bash
 cd API_TRAMITACION
 docker compose up --build -d
 ```
 
-Disponible en:
+Disponible en: `http://localhost:8080`
 
-```text
-http://localhost:8080
-```
-
-Para `API_VALIDACIONES`:
+Para API_VALIDACIONES:
 
 ```bash
 cd ../API_VALIDACIONES
 docker compose up --build -d
 ```
 
-Disponible en:
+Disponible en: `http://localhost:8081`
 
-```text
-http://localhost:8081
+### 6. Levantar el frontend
+
+Desde la carpeta raíz del repositorio:
+
+```bash
+cd FRONTEND
+python3 -m http.server 5500
 ```
 
-## 6. Verificar los servicios
+Abrir en el navegador:
+
+| Pantalla | URL |
+|---|---|
+| Seguimiento del Trabajo de Título (HU-01) | `http://localhost:5500/seguimiento.html` |
+| Registrar anotación (HU-02) | `http://localhost:5500/anotacion.html` |
+| Aprobar propuesta (HU-04) | `http://localhost:5500/propuestas.html` |
+
+### 7. Verificar los servicios
 
 ```bash
 docker ps
 ```
 
 | Servicio | Puerto |
-|---|---:|
+|---|---|
 | API_TRAMITACION | 8080 |
 | API_VALIDACIONES | 8081 |
 | API_EJEMPLO | 8082 |
 | MySQL | 3306 |
+| Frontend | 5500 |
 
-# Cómo detener el proyecto
+## Cómo detener el proyecto
 
-Ejecutar:
+Ejecutar en cada carpeta donde se levantó un servicio:
 
 ```bash
 docker compose down
