@@ -86,12 +86,12 @@ const registrarAnotacion = (req, res) => {
   });
 };
 
-// HU-04: Registrar una versión de Trabajo de Título
+// HU-11: Registrar una versión de Trabajo de Título
 const registrarVersionTrabajo = (req, res) => {
   const trabajoId = req.params.id;
   const { contenido } = req.body;
 
-  // HU-04 CA4: contenido obligatorio
+  // HU-11 CA4: contenido obligatorio
   if (!contenido || !contenido.trim()) {
     return res.status(400).json({
       error: 'El contenido de la versión es obligatorio'
@@ -115,13 +115,18 @@ const registrarVersionTrabajo = (req, res) => {
         });
       }
 
-      // HU-04 CA2: bloquear si está completado
+      // HU-11 CA2: bloquear si está completado o no esta en desarrollo
       if (trabajos[0].estado === 'completado') {
         return res.status(409).json({
           error: 'No se permiten nuevas versiones para un Trabajo de Título completado'
         });
       }
-
+      
+      if (trabajos[0].estado !== 'en_desarrollo') {
+        return res.status(409).json({
+          error: 'Solo se pueden registrar nuevas versiones cuando el Trabajo de Título está en desarrollo.'
+        });
+      }
       // Buscar última versión
       database.query(
         `
