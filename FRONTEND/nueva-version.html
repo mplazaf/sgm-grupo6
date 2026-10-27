@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrar nueva versión</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <div class="sidebar">
+    <h2>SGM · Trabajos de Título</h2>
+
+    <a href="seguimiento.html">Seguimiento (Memorista)</a>
+    <a href="nueva-version.html">Registrar versión (Memorista)</a>
+    <a href="anotacion.html">Anotaciones (Guía)</a>
+    <a href="propuestas.html">Propuestas (Jefe de Carrera)</a>
+  </div>
+
+  <div class="content">
+
+    <h1>Registrar nueva versión del Trabajo de Título</h1>
+
+    <p class="subtitle">
+      Registra un nuevo avance de tu Trabajo de Título para dejarlo disponible para la revisión del Guía.
+    </p>
+
+    <div class="card">
+
+      <label for="trabajoId">
+        ID del Trabajo de Título:
+      </label>
+
+      <input
+        type="number"
+        id="trabajoId"
+        min="1"
+        placeholder="Ej: 1"
+      >
+
+      <label for="contenido">
+        Contenido de la nueva versión:
+      </label>
+
+      <textarea
+        id="contenido"
+        rows="8"
+        placeholder="Describe el avance realizado en esta nueva versión..."
+      ></textarea>
+
+      <button onclick="registrarVersion()">
+        Registrar versión
+      </button>
+
+    </div>
+
+    <div
+      class="card"
+      id="resultado"
+      style="display:none;"
+    >
+      <span class="eyebrow">
+        Versión registrada
+      </span>
+
+      <h2 id="numeroVersion"></h2>
+
+      <p>
+        <strong>Fecha de entrega:</strong>
+        <span id="fechaEntrega"></span>
+      </p>
+
+      <p>
+        <strong>Contenido:</strong>
+      </p>
+
+      <p id="contenidoRegistrado"></p>
+
+      <p class="success">
+        La nueva versión quedó almacenada correctamente y disponible para revisión.
+      </p>
+    </div>
+
+    <p class="error" id="error"></p>
+
+  </div>
+
+  <script>
+
+    function formatearFecha(valor) {
+
+      if (!valor) {
+        return '';
+      }
+
+      return new Date(valor).toLocaleDateString(
+        'es-CL',
+        { timeZone: 'UTC' }
+      );
+
+    }
+
+    function registrarVersion() {
+
+      const trabajoId =
+        document.getElementById('trabajoId').value;
+
+      const contenido =
+        document.getElementById('contenido').value.trim();
+
+      const error =
+        document.getElementById('error');
+
+      const resultado =
+        document.getElementById('resultado');
+
+      error.textContent = '';
+
+      resultado.style.display = 'none';
+
+      // CA4: contenido obligatorio
+      if (!trabajoId) {
+
+        error.textContent =
+          'Ingresa el ID de un Trabajo de Título.';
+
+        return;
+
+      }
+
+      if (!contenido) {
+
+        error.textContent =
+          'El contenido de la versión es obligatorio.';
+
+        return;
+
+      }
+
+      fetch(
+        `http://localhost:8081/api/trabajos/${trabajoId}/versiones`,
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type': 'application/json'
+          },
+
+          body: JSON.stringify({
+            contenido
+          })
+        }
+      )
+
+        .then(async response => {
+
+          const body =
+            await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+
+            throw new Error(
+              body.error ||
+              'No fue posible registrar la nueva versión.'
+            );
+
+          }
+
+          return body;
+
+        })
+
+        .then(data => {
+
+          document.getElementById('numeroVersion').textContent =
+            `Versión ${data.numero_version}`;
+
+          document.getElementById('fechaEntrega').textContent =
+            formatearFecha(data.fecha_entrega);
+
+          document.getElementById('contenidoRegistrado').textContent =
+            data.contenido;
+
+          resultado.style.display = 'block';
+
+          document.getElementById('contenido').value = '';
+
+        })
+
+        .catch(err => {
+
+          error.textContent = err.message;
+
+        });
+
+    }
+
+  </script>
+
+</body>
+</html>
