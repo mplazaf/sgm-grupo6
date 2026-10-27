@@ -1,6 +1,6 @@
 const database = require('../db');
 
-// HU-01 CA1-CA4: consultar seguimiento actualizado del Trabajo de Título.
+// HU-01 CA1-CA4: consultar seguimiento actualizado del Trabajo de Título
 const getSeguimientoTrabajo = (req, res) => {
   const trabajoId = req.params.id;
 
