@@ -115,13 +115,13 @@ const registrarVersionTrabajo = (req, res) => {
         });
       }
 
-      // HU-11 CA2: bloquear si está completado o no esta en desarrollo
+      // HU-11 CA2: bloquear si está completado o no esta en desarrollo.
       if (trabajos[0].estado === 'completado') {
         return res.status(409).json({
           error: 'No se permiten nuevas versiones para un Trabajo de Título completado'
         });
       }
-      
+
       if (trabajos[0].estado !== 'en_desarrollo') {
         return res.status(409).json({
           error: 'Solo se pueden registrar nuevas versiones cuando el Trabajo de Título está en desarrollo.'
