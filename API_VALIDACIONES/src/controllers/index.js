@@ -1,18 +1,34 @@
 const database = require('../db');
 
-// HU-01 CA1: consultar estado actual
-const getEstadoTrabajo = (req, res) => {
+// HU-01 CA1-CA4: consultar seguimiento actualizado del Trabajo de Título.
+const getSeguimientoTrabajo = (req, res) => {
   const trabajoId = req.params.id;
-  const query = 'SELECT id, nombre, estado FROM trabajo_de_titulo WHERE id = ?';
 
-  database.query(query, [trabajoId], (err, result) => {
-    if (err) throw err;
-    if (!result[0]) {
-      res.status(404).send('Trabajo de Título no encontrado');
-      return;
+  database.query(
+    'SELECT id, nombre, estado, actualizado_en FROM trabajo_de_titulo WHERE id = ?',
+    [trabajoId],
+    (err, trabajos) => {
+      if (err) return res.status(500).json({ error: 'Error al consultar el Trabajo de Título' });
+      if (!trabajos[0]) return res.status(404).json({ error: 'Trabajo de Título no encontrado' });
+
+      database.query(
+        'SELECT id, nombre, estado, orden_hito FROM hito WHERE trabajo_id = ? ORDER BY orden_hito',
+        [trabajoId],
+        (err2, hitos) => {
+          if (err2) return res.status(500).json({ error: 'Error al consultar los hitos' });
+
+          database.query(
+            'SELECT id, descripcion, responsable, estado FROM accion_pendiente WHERE trabajo_id = ? ORDER BY id',
+            [trabajoId],
+            (err3, acciones) => {
+              if (err3) return res.status(500).json({ error: 'Error al consultar las acciones pendientes' });
+              res.status(200).json({ ...trabajos[0], hitos, acciones_pendientes: acciones });
+            }
+          );
+        }
+      );
     }
-    res.status(200).json(result[0]);
-  });
+  );
 };
 
 // HU-02 CA2: registrar anotación sobre una versión
