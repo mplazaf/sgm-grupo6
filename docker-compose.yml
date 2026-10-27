@@ -1,9 +1,9 @@
 services:
   mysql:
     image: mysql
-    ports: 
+    ports:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: password
     volumes:
-      - ./API_EJEMPLO/init:/docker-entrypoint-initdb.d
+      - ./database:/docker-entrypoint-initdb.d
