@@ -52,6 +52,12 @@ INSERT INTO trabajo_de_titulo (id, nombre, estado)
 SELECT 1, 'Optimización de rutas en redes de transporte público', 'en_desarrollo'
 WHERE NOT EXISTS (SELECT 1 FROM trabajo_de_titulo WHERE id = 1);
 
+INSERT INTO trabajo_de_titulo (id, nombre, estado)
+SELECT 2, 'Trabajo de Título finalizado para pruebas', 'completado'
+WHERE NOT EXISTS (
+    SELECT 1 FROM trabajo_de_titulo WHERE id = 2
+);
+
 INSERT INTO hito (trabajo_id, nombre, estado, orden_hito)
 SELECT 1, 'TT1 · Propuesta de Trabajo de Título', 'completado', 1
 WHERE NOT EXISTS (SELECT 1 FROM hito WHERE trabajo_id = 1 AND orden_hito = 1);
