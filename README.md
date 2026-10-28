@@ -1,6 +1,8 @@
 # GRUPO06-2026-PROYINF
 
-Repositorio correspondiente al proyecto de la asignatura INF236 - Análisis y Diseño de Software.
+Repositorio correspondiente al proyecto de la asignatura **INF236 - Análisis y Diseño de Software**.
+
+El proyecto corresponde a un **Sistema de Gestión de Trabajos de Título**, orientado al seguimiento del proceso de titulación y a la interacción entre Memoristas, Guías y Jefatura de Carrera.
 
 ## Integrantes
 
@@ -9,13 +11,13 @@ Repositorio correspondiente al proyecto de la asignatura INF236 - Análisis y Di
 - María José Alvarez - 202473045-2
 - Noelia Opazo - 202473069-K
 
-## Ayudante  - Tutor
+## Ayudante - Tutor
 
 - Fernanda Araya
 
 ## Wiki
 
-La documentación correspondiente al proyecto se encuentra disponible en la Wiki del repositorio.
+La documentación del proyecto, incluyendo historias de usuario, modelo de dominio, decisiones de diseño y documentación del prototipo, se encuentra disponible en la Wiki del repositorio.
 
 [Ir a la Wiki](https://gitlab.inf.utfsm.cl/inf236-cc-2026-2/grupo06-2026-proyinf/-/wikis/home)
 
@@ -25,77 +27,180 @@ El video de demostración correspondiente al Hito 3 se encuentra disponible en e
 
 [Ver video del prototipo](https://onedrive.live.com/?qt=allmyphotos&photosData=%2Fshare%2F52BFE67361D9DD8B%21s5e7e5d63e5c14c1ba4c769d96a7e1d8f%3Fithint%3Dvideo%26e%3D8Vfkka%26migratedtospo%3Dtrue&cid=52BFE67361D9DD8B&id=52BFE67361D9DD8B%21s5e7e5d63e5c14c1ba4c769d96a7e1d8f&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3YvYy81MmJmZTY3MzYxZDlkZDhiL0lRQmpYWDVld2VVYlRLVEhhZGxxZmgyUEFWNXhNejM0TDNJdjhBeS1fSHJGMW1BP2U9OFZma2th&v=photos)
 
-# Aspectos técnicos
+---
 
-## Tecnologías utilizadas
+# Funcionalidades implementadas
 
-El proyecto utiliza las siguientes tecnologías:
+Actualmente el sistema cuenta con funcionalidades asociadas a las siguientes historias de usuario:
+
+### HU-01 - Consultar seguimiento del Trabajo de Título
+
+Permite al Memorista consultar:
+
+- Estado actual del Trabajo de Título.
+- Hitos asociados al proceso.
+- Estado de cada hito.
+- Acciones pendientes.
+- Responsable de cada acción pendiente.
+
+### HU-02 - Registrar anotaciones sobre una versión del Trabajo de Título
+
+Permite al Guía:
+
+- Consultar las versiones registradas de un Trabajo de Título.
+- Revisar el contenido de una versión específica.
+- Consultar las anotaciones asociadas a esa versión.
+- Registrar nuevas anotaciones con autor y fecha.
+
+### HU-04 - Aprobar Propuesta de Trabajo de Título
+
+Permite al Jefe de Carrera:
+
+- Consultar las propuestas registradas.
+- Identificar propuestas pendientes y aprobadas.
+- Consultar el contenido de una propuesta.
+- Revisar las anotaciones realizadas por el Profesor TT1.
+- Aprobar una propuesta pendiente.
+
+### HU-11 - Registrar nueva versión del Trabajo de Título
+
+Permite al Memorista:
+
+- Registrar el contenido de una nueva versión.
+- Generar automáticamente un número de versión correlativo.
+- Registrar automáticamente su fecha de entrega.
+- Mantener las versiones anteriores en el historial.
+- Impedir entregas con contenido vacío.
+- Impedir nuevas entregas cuando el Trabajo de Título se encuentra completado.
+
+---
+
+# Estructura del proyecto
+
+El proyecto se encuentra dividido en dos API, un frontend y la configuración de la base de datos.
+
+```text
+grupo06-2026-proyinf/
+├── API_TRAMITACION/
+├── API_VALIDACIONES/
+├── FRONTEND/
+├── database/
+│   └── init.sql
+├── docker-compose.yml
+└── README.md
+```
+
+## API_TRAMITACION
+
+API destinada a las operaciones relacionadas con la tramitación de las propuestas de Trabajo de Título.
+
+Actualmente contiene las funcionalidades correspondientes principalmente a **HU-04**.
+
+Puerto:
+
+```text
+8080
+```
+
+## API_VALIDACIONES
+
+API utilizada para las funcionalidades asociadas al seguimiento, versiones y anotaciones de los Trabajos de Título.
+
+Actualmente contiene las funcionalidades correspondientes a:
+
+- HU-01
+- HU-02
+- HU-11
+
+Puerto:
+
+```text
+8081
+```
+
+## FRONTEND
+
+Contiene las interfaces utilizadas para interactuar con las funcionalidades implementadas.
+
+## database
+
+Contiene el archivo:
+
+```text
+database/init.sql
+```
+
+Este archivo crea las bases de datos y los datos iniciales utilizados por el sistema.
+
+---
+
+# Tecnologías utilizadas
+
+El proyecto utiliza:
 
 - Node.js
 - Express
 - MySQL
+- HTML
+- CSS
+- JavaScript
 - Docker
 - Docker Compose
+- Python 3, utilizado para servir localmente el frontend
 
-El proyecto base considera las siguientes API:
-
-- `API_EJEMPLO`: API utilizada para comprobar el correcto funcionamiento del proyecto base.
-- `API_TRAMITACION`: API destinada a los procesos asociados a la tramitación.
-- `API_VALIDACIONES`: API destinada a los procesos asociados a las validaciones.
-
-Cada API utiliza Node.js y Express, y se conecta a una base de datos MySQL.
-
----
-
-## Dependencias
-
-Las tres API utilizan las siguientes dependencias:
-
-- `dotenv` `^16.3.1`: permite cargar las variables de entorno definidas en los archivos `.env`.
-- `express` `^4.18.2`: framework utilizado para implementar las API.
-- `morgan` `^1.10.0`: permite registrar las solicitudes HTTP recibidas por las API.
-- `mysql2` `^3.0.0`: permite establecer la conexión entre Node.js y MySQL.
-
-Las dependencias son instaladas automáticamente al construir las imágenes Docker mediante:
-
-```bash
-npm install
-```
-
-Por lo tanto, siguiendo el procedimiento con Docker descrito en este README no es necesario ejecutar `npm install` manualmente.
-
----
-
-## Versiones
-
-El proyecto utiliza:
-
-- Node.js `18`, mediante la imagen `node:18-alpine`.
-- Express `^4.18.2`.
-- dotenv `^16.3.1`.
-- morgan `^1.10.0`.
-- mysql2 `^3.0.0`.
-
-El procedimiento fue verificado por el equipo utilizando:
+Las API se ejecutan utilizando la imagen:
 
 ```text
-Docker version 29.8.0
-Docker Compose version v5.5.1
+node:18-alpine
 ```
 
-El proyecto utiliza la imagen:
+La base de datos utiliza la imagen oficial:
 
 ```text
 mysql
 ```
 
-en Docker Compose. El archivo `docker-compose.yml` del proyecto base no fija una versión específica de MySQL.
+---
+
+# Dependencias
+
+Las dos API utilizan las siguientes dependencias:
+
+- `cors`: permite solicitudes entre el frontend y las API ejecutadas en distintos puertos.
+- `dotenv`: permite cargar las variables definidas en los archivos `.env`.
+- `express`: framework utilizado para implementar las API REST.
+- `morgan`: registra las solicitudes HTTP recibidas.
+- `mysql2`: permite realizar la conexión entre Node.js y MySQL.
+
+---
+
+# Bases de datos
+
+El archivo `database/init.sql` crea dos bases de datos.
+
+## BD06_VALIDACIONES
+
+Contiene información relacionada con:
+
+- Trabajos de Título.
+- Hitos.
+- Acciones pendientes.
+- Versiones.
+- Anotaciones sobre versiones.
+
+## BD06_TRAMITACION
+
+Contiene información relacionada con:
+
+- Propuestas de Trabajo de Título.
+- Anotaciones realizadas sobre las propuestas.
+- Estado de aprobación de las propuestas.
 
 ---
 
 # Variables de configuración
 
-Las API utilizan variables de entorno para definir su puerto y establecer la conexión con MySQL.
+Cada API utiliza un archivo `.env` para configurar su puerto y conexión a MySQL.
 
 Las variables utilizadas son:
 
@@ -108,38 +213,9 @@ DB_PORT
 DB_HOST
 ```
 
-Los archivos `.env` no deben contener credenciales institucionales ni información sensible.
-
-La contraseña `password` indicada a continuación corresponde únicamente a la configuración local entregada con el proyecto base y no corresponde a una credencial institucional o de producción.
-
-## API_EJEMPLO
-
-Crear o verificar el archivo:
-
-```text
-API_EJEMPLO/.env
-```
-
-con:
-
-```env
-PORT_API=8082
-DB_USER="root"
-DB_PASSWORD="password"
-DB_NAME="BD_EJEMPLO"
-DB_PORT=3306
-DB_HOST="host.docker.internal"
-```
-
 ## API_TRAMITACION
 
-Crear o verificar el archivo:
-
-```text
-API_TRAMITACION/.env
-```
-
-con:
+Configuración:
 
 ```env
 PORT_API=8080
@@ -152,13 +228,7 @@ DB_HOST="host.docker.internal"
 
 ## API_VALIDACIONES
 
-Crear o verificar el archivo:
-
-```text
-API_VALIDACIONES/.env
-```
-
-con:
+Configuración:
 
 ```env
 PORT_API=8081
@@ -169,12 +239,11 @@ DB_PORT=3306
 DB_HOST="host.docker.internal"
 ```
 
-Los nombres `BD06_TRAMITACION` y `BD06_VALIDACIONES` corresponden al número del grupo, en este caso **Grupo 06**.
-
 ---
-## Cómo levantar el proyecto
 
-### 1. Requisitos previos
+# Cómo levantar el proyecto
+
+## 1. Requisitos previos
 
 Se debe contar con:
 
@@ -183,88 +252,204 @@ Se debe contar con:
 - Docker Compose
 - Python 3
 
-> En Linux, si el usuario no está agregado al grupo `docker`, anteponer `sudo` a los comandos de `docker compose` que aparecen a continuación.
+En Linux, dependiendo de la configuración de Docker, puede ser necesario utilizar `sudo` antes de los comandos `docker compose`.
 
-
-### 2. Clonar el repositorio
+## 2. Clonar el repositorio
 
 ```bash
 git clone https://gitlab.inf.utfsm.cl/inf236-cc-2026-2/grupo06-2026-proyinf.git
 cd grupo06-2026-proyinf
 ```
 
-### 3. Configurar variables de entorno
+## 3. Levantar MySQL
 
-Verificar los archivos `.env` incluidos en cada API (`API_EJEMPLO`, `API_TRAMITACION` y `API_VALIDACIONES`) y ajustar sus valores si es necesario según la configuración local.
-
-### 4. Levantar API_EJEMPLO y MySQL
-
-Desde la carpeta raíz del repositorio:
+Desde la carpeta raíz del proyecto:
 
 ```bash
-docker compose up --build
+docker compose up -d
 ```
 
-Esperar hasta visualizar: Server running!
+Esto inicia MySQL en:
 
+```text
+localhost:3306
+```
 
-### 5. Levantar las demás API
+Al crearse por primera vez el volumen de MySQL, el archivo:
 
-Para API_TRAMITACION:
+```text
+database/init.sql
+```
+
+creará automáticamente las bases de datos `BD06_VALIDACIONES` y `BD06_TRAMITACION` junto con los datos iniciales.
+
+Se puede verificar el contenedor ejecutando:
+
+```bash
+docker ps
+```
+
+## 4. Levantar API_TRAMITACION
+
+Desde la raíz:
 
 ```bash
 cd API_TRAMITACION
 docker compose up --build -d
 ```
 
-Disponible en: `http://localhost:8080`
+La API estará disponible en:
 
-Para API_VALIDACIONES:
+```text
+http://localhost:8080
+```
+
+## 5. Levantar API_VALIDACIONES
+
+Desde `API_TRAMITACION`:
 
 ```bash
 cd ../API_VALIDACIONES
 docker compose up --build -d
 ```
 
-Disponible en: `http://localhost:8081`
+La API estará disponible en:
 
-### 6. Levantar el frontend
+```text
+http://localhost:8081
+```
 
-Desde la carpeta raíz del repositorio:
+## 6. Levantar el frontend
+
+Desde `API_VALIDACIONES`:
 
 ```bash
-cd FRONTEND
+cd ../FRONTEND
 python3 -m http.server 5500
 ```
 
-Abrir en el navegador:
+En sistemas donde el comando sea `python` en lugar de `python3` se puede utilizar:
 
-| Pantalla | URL |
+```bash
+python -m http.server 5500
+```
+
+El servidor debe permanecer ejecutándose mientras se utiliza el frontend.
+
+---
+
+# Pantallas disponibles
+
+| Funcionalidad | URL |
 |---|---|
-| Seguimiento del Trabajo de Título (HU-01) | `http://localhost:5500/seguimiento.html` |
-| Registrar anotación (HU-02) | `http://localhost:5500/anotacion.html` |
-| Aprobar propuesta (HU-04) | `http://localhost:5500/propuestas.html` |
+| Seguimiento del Trabajo de Título - HU-01 | `http://localhost:5500/seguimiento.html` |
+| Registrar anotaciones - HU-02 | `http://localhost:5500/anotacion.html` |
+| Aprobar propuesta - HU-04 | `http://localhost:5500/propuestas.html` |
+| Registrar nueva versión - HU-11 | `http://localhost:5500/nueva-version.html` |
 
-### 7. Verificar los servicios
+---
+
+# Endpoints principales
+
+## API_VALIDACIONES
+
+### Consultar seguimiento de un Trabajo de Título
+
+```text
+GET /api/trabajos/:id/seguimiento
+```
+
+### Consultar versiones de un Trabajo de Título
+
+```text
+GET /api/trabajos/:id/versiones
+```
+
+### Consultar una versión específica
+
+```text
+GET /api/versiones/:id
+```
+
+### Registrar una anotación sobre una versión
+
+```text
+POST /api/versiones/:id/anotaciones
+```
+
+### Registrar una nueva versión
+
+```text
+POST /api/trabajos/:id/versiones
+```
+
+## API_TRAMITACION
+
+### Consultar propuestas
+
+```text
+GET /api/propuestas
+```
+
+También es posible filtrar por estado:
+
+```text
+GET /api/propuestas?estado=pendiente
+GET /api/propuestas?estado=aprobada
+```
+
+### Consultar detalle de una propuesta
+
+```text
+GET /api/propuestas/:id
+```
+
+### Aprobar una propuesta
+
+```text
+PUT /api/propuestas/:id/aprobar
+```
+
+---
+
+# Verificar los servicios
+
+Para revisar los contenedores Docker activos:
 
 ```bash
 docker ps
 ```
 
+Los servicios principales utilizan los siguientes puertos:
+
 | Servicio | Puerto |
-|---|---|
+|---|---:|
+| MySQL | 3306 |
 | API_TRAMITACION | 8080 |
 | API_VALIDACIONES | 8081 |
-| API_EJEMPLO | 8082 |
-| MySQL | 3306 |
 | Frontend | 5500 |
 
-## Cómo detener el proyecto
+---
 
-Ejecutar en cada carpeta donde se levantó un servicio:
+# Cómo detener el proyecto
+
+Para detener `API_TRAMITACION`:
 
 ```bash
+cd API_TRAMITACION
 docker compose down
 ```
 
-en la carpeta correspondiente a cada servicio levantado.
+Para detener `API_VALIDACIONES`:
+
+```bash
+cd ../API_VALIDACIONES
+docker compose down
+```
+
+Finalmente, para detener MySQL:
+
+```bash
+cd ..
+docker compose down
+```
