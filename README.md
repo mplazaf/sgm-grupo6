@@ -200,22 +200,27 @@ Contiene información relacionada con:
 
 # Variables de configuración
 
-Cada API utiliza un archivo `.env` para configurar su puerto y conexión a MySQL.
+Cada API requiere un archivo `.env` local para definir su puerto y los parámetros de conexión a MySQL.
 
-Las variables utilizadas son:
+Por razones de configuración y seguridad, los archivos `.env` **no se versionan en el repositorio**.
+
+En su lugar, cada API incluye un archivo:
 
 ```text
-PORT_API
-DB_USER
-DB_PASSWORD
-DB_NAME
-DB_PORT
-DB_HOST
+.env.example
 ```
+
+que contiene la configuración necesaria para ejecutar el proyecto en el entorno local.
 
 ## API_TRAMITACION
 
-Configuración:
+El archivo:
+
+```text
+API_TRAMITACION/.env.example
+```
+
+contiene:
 
 ```env
 PORT_API=8080
@@ -226,9 +231,32 @@ DB_PORT=3306
 DB_HOST="host.docker.internal"
 ```
 
+Antes de levantar la API se debe crear una copia de `.env.example` con el nombre:
+
+```text
+.env
+```
+
+La estructura esperada es:
+
+```text
+API_TRAMITACION/
+├── .env
+├── .env.example
+├── Dockerfile
+├── docker-compose.yml
+└── ...
+```
+
 ## API_VALIDACIONES
 
-Configuración:
+El archivo:
+
+```text
+API_VALIDACIONES/.env.example
+```
+
+contiene:
 
 ```env
 PORT_API=8081
@@ -238,6 +266,25 @@ DB_NAME="BD06_VALIDACIONES"
 DB_PORT=3306
 DB_HOST="host.docker.internal"
 ```
+
+Antes de levantar la API se debe crear una copia de `.env.example` con el nombre:
+
+```text
+.env
+```
+
+La estructura esperada es:
+
+```text
+API_VALIDACIONES/
+├── .env
+├── .env.example
+├── Dockerfile
+├── docker-compose.yml
+└── ...
+```
+
+Por razones de configuración y seguridad, los archivos `.env` no se versionan en el repositorio. En su lugar, cada API incluye un archivo `.env.example` con la configuración necesaria para ejecutar el proyecto en el entorno local.
 
 ---
 
