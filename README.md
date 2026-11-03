@@ -62,6 +62,17 @@ Permite al Jefe de Carrera:
 - Revisar las anotaciones realizadas por el Profesor TT1.
 - Aprobar una propuesta pendiente.
 
+### HU-10 - Consultar anotaciones de una versión del Trabajo de Título
+
+Permite al Memorista:
+
+- Consultar las versiones registradas de su Trabajo de Título.
+- Seleccionar una versión específica.
+- Revisar el contenido de la versión seleccionada.
+- Consultar las anotaciones realizadas por el Guía.
+- Visualizar el autor y la fecha de cada anotación.
+- Recibir un aviso cuando una versión no posee anotaciones registradas.
+
 ### HU-11 - Registrar nueva versión del Trabajo de Título
 
 Permite al Memorista:
@@ -110,6 +121,7 @@ Actualmente contiene las funcionalidades correspondientes a:
 
 - HU-01
 - HU-02
+- HU-10
 - HU-11
 
 Puerto:
@@ -387,12 +399,13 @@ El servidor debe permanecer ejecutándose mientras se utiliza el frontend.
 
 # Pantallas disponibles
 
-| Funcionalidad | URL |
-|---|---|
-| Seguimiento del Trabajo de Título - HU-01 | `http://localhost:5500/seguimiento.html` |
-| Registrar anotaciones - HU-02 | `http://localhost:5500/anotacion.html` |
-| Aprobar propuesta - HU-04 | `http://localhost:5500/propuestas.html` |
-| Registrar nueva versión - HU-11 | `http://localhost:5500/nueva-version.html` |
+| Funcionalidad                             | URL                                                  |
+| ----------------------------------------- | ---------------------------------------------------- |
+| Seguimiento del Trabajo de Título - HU-01 | `http://localhost:5500/seguimiento.html`             |
+| Registrar anotaciones - HU-02             | `http://localhost:5500/anotacion.html`               |
+| Aprobar propuesta - HU-04                 | `http://localhost:5500/propuestas.html`              |
+| Consultar anotaciones - HU-10             | `http://localhost:5500/consultar-anotaciones.html`   |
+| Registrar nueva versión - HU-11           | `http://localhost:5500/nueva-version.html`           |
 
 ---
 
