@@ -20,6 +20,14 @@ CREATE TABLE IF NOT EXISTS hito (
     FOREIGN KEY (trabajo_id) REFERENCES trabajo_de_titulo(id)
 );
 
+CREATE TABLE IF NOT EXISTS examen_titulo (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trabajo_id INT NOT NULL UNIQUE,
+    fecha DATE NOT NULL,
+    sala VARCHAR(100) NOT NULL,
+    FOREIGN KEY (trabajo_id) REFERENCES trabajo_de_titulo(id)
+);
+
 CREATE TABLE IF NOT EXISTS accion_pendiente (
     id INT AUTO_INCREMENT PRIMARY KEY,
     trabajo_id INT NOT NULL,
