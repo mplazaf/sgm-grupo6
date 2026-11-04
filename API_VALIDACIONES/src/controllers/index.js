@@ -252,10 +252,12 @@ const getExamenTrabajo = (req, res) => {
   });
 };
 
+ 
  // HU-09 CA2 y CA4: registrar o actualizar fecha y sala de un intento.
 const guardarExamenTrabajo = (req, res) => {
   const trabajoId = Number(req.params.id);
   const { numero_intento, fecha, sala } = req.body || {};
+  const numeroIntento = Number(numero_intento);
 
   if (!Number.isInteger(trabajoId) || trabajoId <= 0) {
     return res.status(400).json({
@@ -263,11 +265,7 @@ const guardarExamenTrabajo = (req, res) => {
     });
   }
 
-  const numeroIntento = Number(numero_intento);
-
-  if (!Number.isInteger(numeroIntento) ||
-      numeroIntento < 1 ||
-      numeroIntento > 2) {
+  if (![1, 2].includes(numeroIntento)) {
     return res.status(400).json({
       error: 'El número de intento debe ser 1 o 2'
     });
@@ -311,41 +309,83 @@ const guardarExamenTrabajo = (req, res) => {
         });
       }
 
-      const query = `
-        INSERT INTO examen_titulo
-          (trabajo_id, numero_intento, fecha, sala)
-        VALUES (?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          fecha = VALUES(fecha),
-          sala = VALUES(sala)
-      `;
-
       database.query(
-        query,
-        [trabajoId, numeroIntento, fecha, sala.trim()],
-        (err2, resultado) => {
+        `SELECT numero_intento,
+                DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha
+         FROM examen_titulo
+         WHERE trabajo_id = ?`,
+        [trabajoId],
+        (err2, intentos) => {
           if (err2) {
             return res.status(500).json({
-              error: 'Error al guardar los antecedentes del examen'
+              error: 'Error al consultar los intentos existentes'
             });
           }
 
+          const primero = intentos.find(
+            intento => intento.numero_intento === 1
+          );
+
+          const segundo = intentos.find(
+            intento => intento.numero_intento === 2
+          );
+
+          if (numeroIntento === 2 && !primero) {
+            return res.status(409).json({
+              error: 'Debe existir la primera oportunidad antes de registrar la segunda'
+            });
+          }
+
+          if (numeroIntento === 2 && fecha <= primero.fecha) {
+            return res.status(409).json({
+              error: 'La segunda oportunidad debe tener una fecha posterior a la primera'
+            });
+          }
+
+          if (numeroIntento === 1 && segundo &&
+              fecha >= segundo.fecha) {
+            return res.status(409).json({
+              error: 'La primera oportunidad debe tener una fecha anterior a la segunda'
+            });
+          }
+
+          const query = `
+            INSERT INTO examen_titulo
+              (trabajo_id, numero_intento, fecha, sala)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+              fecha = VALUES(fecha),
+              sala = VALUES(sala)
+          `;
+
           database.query(
-            `SELECT id, trabajo_id, numero_intento,
-                    DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha,
-                    sala
-             FROM examen_titulo
-             WHERE trabajo_id = ? AND numero_intento = ?`,
-            [trabajoId, numeroIntento],
-            (err3, examenes) => {
+            query,
+            [trabajoId, numeroIntento, fecha, sala.trim()],
+            (err3, resultado) => {
               if (err3) {
                 return res.status(500).json({
-                  error: 'Error al consultar el examen registrado'
+                  error: 'Error al guardar los antecedentes del examen'
                 });
               }
 
-              const codigo = resultado.affectedRows === 1 ? 201 : 200;
-              res.status(codigo).json(examenes[0]);
+              database.query(
+                `SELECT id, trabajo_id, numero_intento,
+                        DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha,
+                        sala
+                 FROM examen_titulo
+                 WHERE trabajo_id = ? AND numero_intento = ?`,
+                [trabajoId, numeroIntento],
+                (err4, examenes) => {
+                  if (err4) {
+                    return res.status(500).json({
+                      error: 'Error al consultar el examen registrado'
+                    });
+                  }
+
+                  const codigo = resultado.affectedRows === 1 ? 201 : 200;
+                  return res.status(codigo).json(examenes[0]);
+                }
+              );
             }
           );
         }
@@ -353,6 +393,7 @@ const guardarExamenTrabajo = (req, res) => {
     }
   );
 };
+
 
 module.exports = {
   getSeguimientoTrabajo,
