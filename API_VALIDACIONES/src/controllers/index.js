@@ -237,6 +237,96 @@ const getExamenTrabajo = (req, res) => {
   });
 };
 
+const guardarExamenTrabajo = (req, res) => {
+  const trabajoId = Number(req.params.id);
+  const { fecha, sala } = req.body || {};
+
+  if (!Number.isInteger(trabajoId) || trabajoId <= 0) {
+    return res.status(400).json({
+      error: 'Identificador de Trabajo de Título inválido'
+    });
+  }
+
+  if (typeof fecha !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(fecha) ||
+      typeof sala !== 'string' ||
+      !sala.trim() ||
+      sala.trim().length > 100) {
+    return res.status(400).json({
+      error: 'Debe ingresar una fecha válida (AAAA-MM-DD) y una sala de hasta 100 caracteres'
+    });
+  }
+
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const fechaValidada = new Date(Date.UTC(anio, mes - 1, dia));
+
+  if (anio < 100 ||
+      fechaValidada.getUTCFullYear() !== anio ||
+      fechaValidada.getUTCMonth() !== mes - 1 ||
+      fechaValidada.getUTCDate() !== dia) {
+    return res.status(400).json({
+      error: 'La fecha ingresada no existe en el calendario'
+    });
+  }
+
+  database.query(
+    'SELECT id FROM trabajo_de_titulo WHERE id = ?',
+    [trabajoId],
+    (err, trabajos) => {
+      if (err) {
+        return res.status(500).json({
+          error: 'Error al consultar el Trabajo de Título'
+        });
+      }
+
+      if (!trabajos[0]) {
+        return res.status(404).json({
+          error: 'Trabajo de Título no encontrado'
+        });
+      }
+
+      const query = `
+        INSERT INTO examen_titulo (trabajo_id, fecha, sala)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          fecha = VALUES(fecha),
+          sala = VALUES(sala)
+      `;
+
+      database.query(
+        query,
+        [trabajoId, fecha, sala.trim()],
+        (err2, resultado) => {
+          if (err2) {
+            return res.status(500).json({
+              error: 'Error al guardar los antecedentes del examen'
+            });
+          }
+
+          database.query(
+            `SELECT id, trabajo_id,
+                    DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha,
+                    sala
+             FROM examen_titulo
+             WHERE trabajo_id = ?`,
+            [trabajoId],
+            (err3, examenes) => {
+              if (err3) {
+                return res.status(500).json({
+                  error: 'Error al consultar el examen registrado'
+                });
+              }
+
+              const codigo = resultado.affectedRows === 1 ? 201 : 200;
+              res.status(codigo).json(examenes[0]);
+            }
+          );
+        }
+      );
+    }
+  );
+};
+
 module.exports = {
   getSeguimientoTrabajo,
   getVersionesTrabajo,
@@ -244,4 +334,5 @@ module.exports = {
   registrarAnotacion,
   registrarVersionTrabajo,
   getExamenTrabajo,
+  guardarExamenTrabajo,
 };
