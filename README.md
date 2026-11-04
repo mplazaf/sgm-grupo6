@@ -62,6 +62,26 @@ Permite al Jefe de Carrera:
 - Revisar las anotaciones realizadas por el Profesor TT1.
 - Aprobar una propuesta pendiente.
 
+### HU-09 - Registrar información del Examen de Título
+
+Permite a Secretaria:
+
+- Consultar los antecedentes de un Trabajo de Título y su hito de examen.
+- Visualizar las oportunidades de examen registradas.
+- Registrar la fecha y sala de la primera o segunda oportunidad de defensa.
+- Consultar posteriormente las fechas y salas registradas.
+- Actualizar la fecha y sala de una oportunidad existente.
+- Mantener un máximo de dos oportunidades de examen por Trabajo de Título.
+- Impedir el registro de una segunda oportunidad si no existe la primera.
+- Validar que la segunda oportunidad tenga una fecha posterior a la primera.
+- Impedir reprogramaciones que alteren el orden cronológico de las oportunidades.
+
+**Dependencias pendientes:** La autorización académica para continuar
+hacia el Examen de Título depende de la aprobación del Guía (HU-07).
+La habilitación de una segunda oportunidad depende del resultado
+de la primera defensa (HU-08). Estas validaciones todavía no están
+integradas en el backend de HU-09.
+
 ### HU-10 - Consultar anotaciones de una versión del Trabajo de Título
 
 Permite al Memorista:
@@ -101,6 +121,7 @@ grupo06-2026-proyinf/
 └── README.md
 ```
 
+
 ## API_TRAMITACION
 
 API destinada a las operaciones relacionadas con la tramitación de las propuestas de Trabajo de Título.
@@ -115,12 +136,13 @@ Puerto:
 
 ## API_VALIDACIONES
 
-API utilizada para las funcionalidades asociadas al seguimiento, versiones y anotaciones de los Trabajos de Título.
+API utilizada para las funcionalidades asociadas al seguimiento, versiones, anotaciones y gestión de los Exámenes de Título.
 
 Actualmente contiene las funcionalidades correspondientes a:
 
 - HU-01
 - HU-02
+- HU-09
 - HU-10
 - HU-11
 
@@ -134,6 +156,11 @@ Puerto:
 
 Contiene las interfaces utilizadas para interactuar con las funcionalidades implementadas.
 
+La funcionalidad HU-09 utiliza los siguientes archivos:
+
+- `FRONTEND/registrar-examen.html`: interfaz para consultar los antecedentes del Trabajo de Título y registrar o actualizar la fecha y sala de las oportunidades de examen.
+- `FRONTEND/registrar-examen.js`: lógica de consulta, registro y actualización de exámenes mediante los servicios de API_VALIDACIONES.
+
 ## database
 
 Contiene el archivo:
@@ -144,6 +171,26 @@ database/init.sql
 
 Este archivo crea las bases de datos y los datos iniciales utilizados por el sistema.
 
+
+### Tabla examen_titulo (HU-09)
+
+La tabla `examen_titulo`, perteneciente a `BD06_VALIDACIONES`, almacena la información de las oportunidades de Examen de Título.
+
+Sus campos principales son:
+
+- `id`: identificador del examen.
+- `trabajo_id`: identificador del Trabajo de Título asociado.
+- `numero_intento`: primera o segunda oportunidad de examen.
+- `fecha`: fecha programada para la defensa.
+- `sala`: sala asignada para la defensa.
+
+Cada Trabajo de Título puede tener un máximo de dos oportunidades de examen, identificadas mediante `numero_intento` (1 o 2).
+
+La combinación de `trabajo_id` y `numero_intento` es única, evitando duplicar una misma oportunidad.
+
+Además, el sistema valida que exista la primera oportunidad antes de registrar la segunda y que las fechas mantengan un orden cronológico correcto.
+
+La autorización académica para rendir el examen depende de HU-07 y HU-08, cuya integración se encuentra pendiente.
 ---
 
 # Tecnologías utilizadas
@@ -404,6 +451,7 @@ El servidor debe permanecer ejecutándose mientras se utiliza el frontend.
 | Seguimiento del Trabajo de Título - HU-01 | `http://localhost:5500/seguimiento.html`             |
 | Registrar anotaciones - HU-02             | `http://localhost:5500/anotacion.html`               |
 | Aprobar propuesta - HU-04                 | `http://localhost:5500/propuestas.html`              |
+| Registrar examen - HU-09                  | `http://localhost:5500/registrar-examen.html`      |
 | Consultar anotaciones - HU-10             | `http://localhost:5500/consultar-anotaciones.html`   |
 | Registrar nueva versión - HU-11           | `http://localhost:5500/nueva-version.html`           |
 
@@ -442,6 +490,36 @@ POST /api/versiones/:id/anotaciones
 ```text
 POST /api/trabajos/:id/versiones
 ```
+### Consultar los exámenes de un Trabajo de Título (HU-09)
+
+```text
+GET /api/trabajos/:id/examen
+```
+
+Permite consultar los antecedentes del Trabajo de Título y las oportunidades de examen registradas, incluyendo el número de intento, la fecha y la sala de cada defensa.
+
+### Registrar o actualizar un Examen de Título (HU-09)
+
+```text
+PUT /api/trabajos/:id/examen
+```
+
+Permite registrar o actualizar la fecha y sala de una oportunidad de examen.
+
+El cuerpo de la solicitud debe contener:
+
+```json
+{
+  "numero_intento": 1,
+  "fecha": "2026-12-15",
+  "sala": "Sala A-101"
+}
+```
+
+El número de intento puede ser `1` o `2`. El sistema exige que exista la primera oportunidad antes de registrar la segunda y valida que las fechas de ambas defensas mantengan un orden cronológico correcto.
+
+**Limitación actual:** La autorización académica del examen y la habilitación de una segunda oportunidad están pendientes de integración con HU-07 y HU-08.
+
 
 ## API_TRAMITACION
 
