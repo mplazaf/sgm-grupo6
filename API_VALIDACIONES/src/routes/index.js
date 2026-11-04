@@ -7,5 +7,6 @@ router.get('/api/trabajos/:id/versiones', index.getVersionesTrabajo);
 router.get('/api/versiones/:id', index.getVersionDetalle);
 router.post('/api/versiones/:id/anotaciones', index.registrarAnotacion);
 router.post('/api/trabajos/:id/versiones', index.registrarVersionTrabajo);
+router.get('/api/trabajos/:id/examen', index.getExamenTrabajo);
 
 module.exports = router;

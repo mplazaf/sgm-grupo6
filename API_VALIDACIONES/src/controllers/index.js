@@ -186,10 +186,62 @@ const registrarVersionTrabajo = (req, res) => {
     }
   );
 };
+
+
+ // HU-09 CA1 y CA3: consultar antecedentes del Examen de Título.
+const getExamenTrabajo = (req, res) => {
+  const trabajoId = Number(req.params.id);
+
+  if (!Number.isInteger(trabajoId) || trabajoId <= 0) {
+    return res.status(400).json({
+      error: 'Identificador de Trabajo de Título inválido'
+    });
+  }
+
+  const query = `
+    SELECT
+      t.id AS trabajo_id,
+      t.nombre AS trabajo_nombre,
+      t.estado AS estado_trabajo,
+      h.id AS hito_examen_id,
+      h.estado AS estado_hito_examen,
+      e.id AS examen_id,
+      DATE_FORMAT(e.fecha, '%Y-%m-%d') AS fecha,
+      e.sala
+    FROM trabajo_de_titulo t
+    LEFT JOIN hito h
+      ON h.trabajo_id = t.id
+      AND h.nombre LIKE 'Examen%'
+    LEFT JOIN examen_titulo e
+      ON e.trabajo_id = t.id
+    WHERE t.id = ?
+  `;
+
+  database.query(query, [trabajoId], (err, rows) => {
+    if (err) {
+      return res.status(500).json({
+        error: 'Error al consultar el Examen de Título'
+      });
+    }
+
+    if (!rows[0]) {
+      return res.status(404).json({
+        error: 'Trabajo de Título no encontrado'
+      });
+    }
+
+    res.status(200).json({
+      ...rows[0],
+      programado: rows[0].examen_id !== null
+    });
+  });
+};
+
 module.exports = {
   getSeguimientoTrabajo,
   getVersionesTrabajo,
   getVersionDetalle,
   registrarAnotacion,
   registrarVersionTrabajo,
+  getExamenTrabajo,
 };
