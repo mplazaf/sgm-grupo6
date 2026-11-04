@@ -186,10 +186,221 @@ const registrarVersionTrabajo = (req, res) => {
     }
   );
 };
+
+// HU-09 CA1 y CA3: Consultar los exámenes de un Trabajo de Título.
+const getExamenTrabajo = (req, res) => {
+  const trabajoId = Number(req.params.id);
+
+  if (!Number.isInteger(trabajoId) || trabajoId <= 0) {
+    return res.status(400).json({
+      error: 'Identificador de Trabajo de Título inválido'
+    });
+  }
+
+  const query = `
+    SELECT
+      t.id AS trabajo_id,
+      t.nombre AS trabajo_nombre,
+      t.estado AS estado_trabajo,
+      h.id AS hito_examen_id,
+      h.estado AS estado_hito_examen,
+      e.id AS examen_id,
+      e.numero_intento,
+      DATE_FORMAT(e.fecha, '%Y-%m-%d') AS fecha,
+      e.sala
+    FROM trabajo_de_titulo t
+    LEFT JOIN hito h
+      ON h.trabajo_id = t.id
+      AND h.nombre LIKE 'Examen%'
+    LEFT JOIN examen_titulo e
+      ON e.trabajo_id = t.id
+    WHERE t.id = ?
+    ORDER BY e.numero_intento ASC
+  `;
+
+  database.query(query, [trabajoId], (err, rows) => {
+    if (err) {
+      return res.status(500).json({
+        error: 'Error al consultar los exámenes del Trabajo de Título'
+      });
+    }
+
+    if (!rows[0]) {
+      return res.status(404).json({
+        error: 'Trabajo de Título no encontrado'
+      });
+    }
+
+    const examenes = rows
+      .filter(row => row.examen_id !== null)
+      .map(row => ({
+        id: row.examen_id,
+        numero_intento: row.numero_intento,
+        fecha: row.fecha,
+        sala: row.sala
+      }));
+
+    res.status(200).json({
+      trabajo_id: rows[0].trabajo_id,
+      trabajo_nombre: rows[0].trabajo_nombre,
+      estado_trabajo: rows[0].estado_trabajo,
+      hito_examen_id: rows[0].hito_examen_id,
+      estado_hito_examen: rows[0].estado_hito_examen,
+      programado: examenes.length > 0,
+      examenes
+    });
+  });
+};
+
+ 
+ // HU-09 CA2 y CA4: registrar o actualizar fecha y sala de un intento.
+const guardarExamenTrabajo = (req, res) => {
+  const trabajoId = Number(req.params.id);
+  const { numero_intento, fecha, sala } = req.body || {};
+  const numeroIntento = Number(numero_intento);
+
+  if (!Number.isInteger(trabajoId) || trabajoId <= 0) {
+    return res.status(400).json({
+      error: 'Identificador de Trabajo de Título inválido'
+    });
+  }
+
+  if (![1, 2].includes(numeroIntento)) {
+    return res.status(400).json({
+      error: 'El número de intento debe ser 1 o 2'
+    });
+  }
+
+  if (typeof fecha !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(fecha) ||
+      typeof sala !== 'string' ||
+      !sala.trim() ||
+      sala.trim().length > 100) {
+    return res.status(400).json({
+      error: 'Debe ingresar una fecha (AAAA-MM-DD) y una sala de hasta 100 caracteres'
+    });
+  }
+
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const fechaValidada = new Date(Date.UTC(anio, mes - 1, dia));
+
+  if (anio < 100 ||
+      fechaValidada.getUTCFullYear() !== anio ||
+      fechaValidada.getUTCMonth() !== mes - 1 ||
+      fechaValidada.getUTCDate() !== dia) {
+    return res.status(400).json({
+      error: 'La fecha ingresada no existe en el calendario'
+    });
+  }
+
+  database.query(
+    'SELECT id FROM trabajo_de_titulo WHERE id = ?',
+    [trabajoId],
+    (err, trabajos) => {
+      if (err) {
+        return res.status(500).json({
+          error: 'Error al consultar el Trabajo de Título'
+        });
+      }
+
+      if (!trabajos[0]) {
+        return res.status(404).json({
+          error: 'Trabajo de Título no encontrado'
+        });
+      }
+
+      database.query(
+        `SELECT numero_intento,
+                DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha
+         FROM examen_titulo
+         WHERE trabajo_id = ?`,
+        [trabajoId],
+        (err2, intentos) => {
+          if (err2) {
+            return res.status(500).json({
+              error: 'Error al consultar los intentos existentes'
+            });
+          }
+
+          const primero = intentos.find(
+            intento => intento.numero_intento === 1
+          );
+
+          const segundo = intentos.find(
+            intento => intento.numero_intento === 2
+          );
+
+          if (numeroIntento === 2 && !primero) {
+            return res.status(409).json({
+              error: 'Debe existir la primera oportunidad antes de registrar la segunda'
+            });
+          }
+
+          if (numeroIntento === 2 && fecha <= primero.fecha) {
+            return res.status(409).json({
+              error: 'La segunda oportunidad debe tener una fecha posterior a la primera'
+            });
+          }
+
+          if (numeroIntento === 1 && segundo &&
+              fecha >= segundo.fecha) {
+            return res.status(409).json({
+              error: 'La primera oportunidad debe tener una fecha anterior a la segunda'
+            });
+          }
+
+          const query = `
+            INSERT INTO examen_titulo
+              (trabajo_id, numero_intento, fecha, sala)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+              fecha = VALUES(fecha),
+              sala = VALUES(sala)
+          `;
+
+          database.query(
+            query,
+            [trabajoId, numeroIntento, fecha, sala.trim()],
+            (err3, resultado) => {
+              if (err3) {
+                return res.status(500).json({
+                  error: 'Error al guardar los antecedentes del examen'
+                });
+              }
+
+              database.query(
+                `SELECT id, trabajo_id, numero_intento,
+                        DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha,
+                        sala
+                 FROM examen_titulo
+                 WHERE trabajo_id = ? AND numero_intento = ?`,
+                [trabajoId, numeroIntento],
+                (err4, examenes) => {
+                  if (err4) {
+                    return res.status(500).json({
+                      error: 'Error al consultar el examen registrado'
+                    });
+                  }
+
+                  const codigo = resultado.affectedRows === 1 ? 201 : 200;
+                  return res.status(codigo).json(examenes[0]);
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
+};
+
+
 module.exports = {
   getSeguimientoTrabajo,
   getVersionesTrabajo,
   getVersionDetalle,
   registrarAnotacion,
   registrarVersionTrabajo,
+  getExamenTrabajo,
+  guardarExamenTrabajo,
 };
