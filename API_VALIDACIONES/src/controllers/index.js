@@ -187,8 +187,7 @@ const registrarVersionTrabajo = (req, res) => {
   );
 };
 
-
- // HU-09 CA1 y CA3: consultar antecedentes del Examen de Título.
+// HU-09 CA1 y CA3: Consultar los exámenes de un Trabajo de Título.
 const getExamenTrabajo = (req, res) => {
   const trabajoId = Number(req.params.id);
 
@@ -206,6 +205,7 @@ const getExamenTrabajo = (req, res) => {
       h.id AS hito_examen_id,
       h.estado AS estado_hito_examen,
       e.id AS examen_id,
+      e.numero_intento,
       DATE_FORMAT(e.fecha, '%Y-%m-%d') AS fecha,
       e.sala
     FROM trabajo_de_titulo t
@@ -215,12 +215,13 @@ const getExamenTrabajo = (req, res) => {
     LEFT JOIN examen_titulo e
       ON e.trabajo_id = t.id
     WHERE t.id = ?
+    ORDER BY e.numero_intento ASC
   `;
 
   database.query(query, [trabajoId], (err, rows) => {
     if (err) {
       return res.status(500).json({
-        error: 'Error al consultar el Examen de Título'
+        error: 'Error al consultar los exámenes del Trabajo de Título'
       });
     }
 
@@ -230,20 +231,45 @@ const getExamenTrabajo = (req, res) => {
       });
     }
 
+    const examenes = rows
+      .filter(row => row.examen_id !== null)
+      .map(row => ({
+        id: row.examen_id,
+        numero_intento: row.numero_intento,
+        fecha: row.fecha,
+        sala: row.sala
+      }));
+
     res.status(200).json({
-      ...rows[0],
-      programado: rows[0].examen_id !== null
+      trabajo_id: rows[0].trabajo_id,
+      trabajo_nombre: rows[0].trabajo_nombre,
+      estado_trabajo: rows[0].estado_trabajo,
+      hito_examen_id: rows[0].hito_examen_id,
+      estado_hito_examen: rows[0].estado_hito_examen,
+      programado: examenes.length > 0,
+      examenes
     });
   });
 };
 
+ // HU-09 CA2 y CA4: registrar o actualizar fecha y sala de un intento.
 const guardarExamenTrabajo = (req, res) => {
   const trabajoId = Number(req.params.id);
-  const { fecha, sala } = req.body || {};
+  const { numero_intento, fecha, sala } = req.body || {};
 
   if (!Number.isInteger(trabajoId) || trabajoId <= 0) {
     return res.status(400).json({
       error: 'Identificador de Trabajo de Título inválido'
+    });
+  }
+
+  const numeroIntento = Number(numero_intento);
+
+  if (!Number.isInteger(numeroIntento) ||
+      numeroIntento < 1 ||
+      numeroIntento > 2) {
+    return res.status(400).json({
+      error: 'El número de intento debe ser 1 o 2'
     });
   }
 
@@ -253,7 +279,7 @@ const guardarExamenTrabajo = (req, res) => {
       !sala.trim() ||
       sala.trim().length > 100) {
     return res.status(400).json({
-      error: 'Debe ingresar una fecha válida (AAAA-MM-DD) y una sala de hasta 100 caracteres'
+      error: 'Debe ingresar una fecha (AAAA-MM-DD) y una sala de hasta 100 caracteres'
     });
   }
 
@@ -286,8 +312,9 @@ const guardarExamenTrabajo = (req, res) => {
       }
 
       const query = `
-        INSERT INTO examen_titulo (trabajo_id, fecha, sala)
-        VALUES (?, ?, ?)
+        INSERT INTO examen_titulo
+          (trabajo_id, numero_intento, fecha, sala)
+        VALUES (?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           fecha = VALUES(fecha),
           sala = VALUES(sala)
@@ -295,7 +322,7 @@ const guardarExamenTrabajo = (req, res) => {
 
       database.query(
         query,
-        [trabajoId, fecha, sala.trim()],
+        [trabajoId, numeroIntento, fecha, sala.trim()],
         (err2, resultado) => {
           if (err2) {
             return res.status(500).json({
@@ -304,12 +331,12 @@ const guardarExamenTrabajo = (req, res) => {
           }
 
           database.query(
-            `SELECT id, trabajo_id,
+            `SELECT id, trabajo_id, numero_intento,
                     DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha,
                     sala
              FROM examen_titulo
-             WHERE trabajo_id = ?`,
-            [trabajoId],
+             WHERE trabajo_id = ? AND numero_intento = ?`,
+            [trabajoId, numeroIntento],
             (err3, examenes) => {
               if (err3) {
                 return res.status(500).json({
