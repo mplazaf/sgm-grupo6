@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrar Examen de Título</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="sidebar">
+    <h2>SGM · Trabajos de Título</h2>
+
+    <a href="seguimiento.html">Seguimiento (Memorista)</a>
+    <a href="anotacion.html">Anotaciones (Guía)</a>
+    <a href="propuestas.html">Propuestas (Jefe de Carrera)</a>
+    <a href="nueva-version.html">Registrar versión (Memorista)</a>
+    <a href="consultar-anotaciones.html">Consultar anotaciones (Memorista)</a>
+    <a href="registrar-examen.html">Registrar examen (Secretaria)</a>
+  </div>
+
+  <div class="content">
+    <h1>Registrar Examen de Título</h1>
+    <p class="subtitle">
+      Consulta los antecedentes del Trabajo de Título y registra
+      la fecha y sala de cada oportunidad de defensa.
+    </p>
+
+    <div class="card">
+      <h2>Consultar Trabajo de Título</h2>
+      <form id="formBuscar">
+        <label for="trabajoId">Identificador del trabajo</label>
+        <input
+          type="number"
+          id="trabajoId"
+          min="1"
+          placeholder="Ej.: 1"
+          required
+        >
+        <button type="submit">Buscar trabajo</button>
+      </form>
+    </div>
+
+    <div class="card" id="detalle" style="display: none;">
+      <h2>Antecedentes del Trabajo de Título</h2>
+      <p>
+        <strong>Nombre:</strong>
+        <span id="nombreTrabajo"></span>
+      </p>
+      <p>
+        <strong>Estado del trabajo:</strong>
+        <span id="estadoTrabajo"></span>
+      </p>
+      <p>
+        <strong>Hito de examen:</strong>
+        <span id="estadoHito"></span>
+      </p>
+
+      <h3>Exámenes registrados</h3>
+      <div id="listaExamenes"></div>
+      <p class="subtitle">
+        La autorización académica para rendir el examen
+        depende de las evaluaciones correspondientes.
+        Su verificación automática está pendiente de integración.
+      </p>
+    </div>
+
+    <div class="card" id="registro" style="display: none;">
+      <h2>Registrar o actualizar defensa</h2>
+      <form id="formExamen">
+        <label for="numeroIntento">Oportunidad de examen</label>
+        <select id="numeroIntento" required>
+          <option value="1">Primera oportunidad</option>
+          <option value="2">Segunda oportunidad</option>
+        </select>
+        <p style="margin-top: 12px;">
+          <label for="fechaDefensa">Fecha de defensa</label>
+        </p>
+        <input
+          type="date"
+          id="fechaDefensa"
+          required
+        >
+        <label for="salaDefensa">Sala de defensa</label>
+        <input
+          type="text"
+          id="salaDefensa"
+          maxlength="100"
+          placeholder="Ej.: Sala B-201"
+          required
+        >
+        <button type="submit">
+          Guardar antecedentes
+        </button>
+      </form>
+    </div>
+    <p id="mensajeExito" class="success"></p>
+    <p id="mensajeError" class="error"></p>
+  </div>
+  <script src="registrar-examen.js"></script>
+
+</body>
+</html>
