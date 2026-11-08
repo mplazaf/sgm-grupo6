@@ -64,6 +64,21 @@ CREATE TABLE IF NOT EXISTS anotacion_tt (
     FOREIGN KEY (version_id) REFERENCES version_tt(id)
 );
 
+CREATE TABLE IF NOT EXISTS evaluacion_guia (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trabajo_id INT NOT NULL,
+    guia_id INT NOT NULL,
+    numero_intento INT NOT NULL,
+    calificacion DECIMAL(5,1) NOT NULL,
+    decision VARCHAR(30) NOT NULL,
+    fecha_evaluacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE (trabajo_id, numero_intento),
+
+    FOREIGN KEY (trabajo_id)
+        REFERENCES trabajo_de_titulo(id)
+);
+
 INSERT INTO trabajo_de_titulo (id, nombre, estado)
 SELECT 1, 'Optimización de rutas en redes de transporte público', 'en_desarrollo'
 WHERE NOT EXISTS (SELECT 1 FROM trabajo_de_titulo WHERE id = 1);

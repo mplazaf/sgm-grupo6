@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Evaluación del Guía</title>
+  <link rel="stylesheet" href="styles.css?v=2">
+</head>
+
+<body>
+
+  <div class="sidebar">
+    <h2>SGM · Trabajos de Título</h2>
+    <a href="seguimiento.html">Seguimiento (Memorista)</a>
+    <a href="anotacion.html">Anotaciones (Guía)</a>
+    <a href="propuestas.html">Propuestas (Jefe de Carrera)</a>
+    <a href="nueva-version.html">Registrar versión (Memorista)</a>
+    <a href="consultar-anotaciones.html">Consultar anotaciones (Memorista)</a>
+    <a href="evaluacion.html">Evaluación Final (Guía)</a>
+    <a href="registrar-examen.html">Registrar examen (Secretaria)</a>
+  </div>
+
+
+  <div class="content">
+
+    <h1>Evaluación final del Trabajo de Título</h1>
+
+    <p class="subtitle">
+      Consulta los antecedentes del Trabajo de Título y registra
+      la evaluación final del Guía.
+    </p>
+
+
+    <!-- CONSULTAR TRABAJO -->
+
+    <div class="card">
+
+      <label for="trabajoId">
+        ID del Trabajo de Título:
+      </label>
+
+      <input
+        type="number"
+        id="trabajoId"
+        min="1"
+        placeholder="Ej: 1"
+      >
+
+      <button onclick="cargarAntecedentes()">
+        Consultar antecedentes
+      </button>
+
+    </div>
+
+
+    <!-- ANTECEDENTES -->
+
+    <div
+      id="antecedentes"
+      style="display:none;"
+    >
+
+      <div class="card">
+
+        <span class="eyebrow">
+          Trabajo de Título
+        </span>
+
+        <h2
+          id="trabajoNombre"
+          class="section-title"
+        ></h2>
+
+        <p>
+          <strong>Estado actual:</strong>
+          <span id="trabajoEstado"></span>
+        </p>
+
+      </div>
+
+
+      <!-- VERSION FINAL -->
+
+      <div class="card">
+
+        <span class="eyebrow">
+          Versión final
+        </span>
+
+        <h2
+          id="versionNumero"
+          class="section-title"
+        ></h2>
+
+        <p>
+          <strong>Fecha de entrega:</strong>
+          <span id="versionFecha"></span>
+        </p>
+
+        <h3>Contenido</h3>
+
+        <p id="versionContenido"></p>
+
+      </div>
+
+
+      <!-- REVISIONES -->
+
+      <div class="card">
+
+        <h2 class="section-title">
+          Revisiones realizadas durante el desarrollo
+        </h2>
+
+        <div id="revisiones"></div>
+
+      </div>
+
+
+      <!-- EVALUACIONES REGISTRADAS -->
+
+      <div
+        class="card"
+        id="evaluacionExistente"
+        style="display:none;"
+      >
+
+        <span class="eyebrow">
+          Evaluaciones registradas
+        </span>
+
+        <h2 class="section-title">
+          Historial de evaluaciones del Guía
+        </h2>
+
+        <div id="listaEvaluaciones"></div>
+
+      </div>
+
+
+      <!-- FORMULARIO EVALUACION -->
+
+      <div class="card">
+
+        <h2 class="section-title">
+          Registrar evaluación del Guía
+        </h2>
+
+        <label for="guiaId">
+          ID del Profesor Guía:
+        </label>
+
+        <input
+          type="number"
+          id="guiaId"
+          min="1"
+          placeholder="Ej: 1"
+        >
+
+
+        <label for="calificacion">
+          Calificación (1.0 - 100.0):
+        </label>
+
+        <input
+          type="number"
+          id="calificacion"
+          min="1"
+          max="100"
+          step="0.1"
+          placeholder="Ej: 85.5"
+        >
+
+
+        <button id="btnRegistrarEvaluacion" onclick="registrarEvaluacion()">
+          Registrar evaluación
+        </button>
+
+        <p
+          class="success"
+          id="success"
+        ></p>
+
+      </div>
+
+    </div>
+
+
+    <p
+      class="error"
+      id="error"
+    ></p>
+
+  </div>
+
+
+  <script>
+
+    function fecha(valor) {
+
+      if (!valor) {
+        return '';
+      }
+
+      return new Date(valor).toLocaleString('es-CL');
+
+    }
+
+
+    function fechaCorta(valor) {
+
+      if (!valor) {
+        return '';
+      }
+
+      return new Date(valor).toLocaleDateString(
+        'es-CL',
+        {
+          timeZone: 'UTC'
+        }
+      );
+
+    }
+
+
+    async function cargarAntecedentes() {
+
+      const trabajoId =
+        document.getElementById('trabajoId').value;
+
+      const error =
+        document.getElementById('error');
+
+      error.textContent = '';
+
+      document.getElementById('antecedentes').style.display =
+        'none';
+
+      document.getElementById('evaluacionExistente').style.display =
+        'none';
+
+
+      if (!trabajoId) {
+
+        error.textContent =
+          'Ingresa el ID de un Trabajo de Título.';
+
+        return;
+
+      }
+
+
+      try {
+
+        const response = await fetch(
+          `http://localhost:8081/api/trabajos/${trabajoId}/antecedentes-evaluacion`
+        );
+
+        const data =
+          await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          const mensaje = data.detalle
+           ? `${data.error}: ${data.detalle}`
+           : data.error || 'No fue posible consultar los antecedentes.';
+          throw new Error(mensaje);
+        }
+
+
+        // Trabajo
+
+        document.getElementById('trabajoNombre').textContent =
+          data.trabajo.nombre;
+
+        document.getElementById('trabajoEstado').textContent =
+          data.trabajo.estado;
+
+
+        // Versión final
+
+        document.getElementById('versionNumero').textContent =
+          `Versión ${data.version_final.numero_version}`;
+
+        document.getElementById('versionFecha').textContent =
+          fechaCorta(data.version_final.fecha_entrega);
+
+        document.getElementById('versionContenido').textContent =
+          data.version_final.contenido;
+
+
+        // Revisiones
+
+        const revisiones =
+          document.getElementById('revisiones');
+
+        revisiones.innerHTML = '';
+
+
+        if (!data.revisiones_previas.length) {
+
+          revisiones.innerHTML = `
+            <p class="empty-state">
+              No existen revisiones registradas durante el desarrollo.
+            </p>
+          `;
+
+        } else {
+
+          data.revisiones_previas.forEach(revision => {
+
+            const item =
+              document.createElement('div');
+
+            item.className = 'annotation';
+
+            item.innerHTML = `
+              <p>${revision.comentario}</p>
+
+              <small>
+                ${revision.autor}
+                · ${fecha(revision.fecha)}
+                · Versión ${revision.numero_version}
+              </small>
+            `;
+
+            revisiones.appendChild(item);
+
+          });
+
+        }
+
+
+        // CA4: historial de evaluaciones
+
+        const evaluaciones =
+          data.evaluaciones_guia || [];
+
+        // Comprobar si ya existe una evaluación aprobada
+        const yaAprobado = evaluaciones.some(
+          evaluacion => Number(evaluacion.calificacion) >= 55
+        );
+
+        // Comprobar si ya se alcanzaron los 3 intentos
+        const maximoIntentos = evaluaciones.length >= 3;
+
+        // Bloquear el formulario si corresponde
+        const formularioBloqueado = yaAprobado || maximoIntentos;
+
+        document.getElementById('btnRegistrarEvaluacion').disabled =
+          formularioBloqueado;
+
+        document.getElementById('guiaId').disabled =
+          formularioBloqueado;
+
+        document.getElementById('calificacion').disabled =
+          formularioBloqueado;
+
+
+        const contenedorEvaluaciones =
+          document.getElementById('listaEvaluaciones');
+
+        contenedorEvaluaciones.innerHTML = '';
+
+
+        if (evaluaciones.length > 0) {
+
+          document.getElementById('evaluacionExistente').style.display =
+            'block';
+
+
+          evaluaciones.forEach(evaluacion => {
+
+            const item =
+              document.createElement('div');
+
+            item.className = 'annotation';
+
+            item.innerHTML = `
+              <p>
+                <strong>VTR ${evaluacion.numero_intento}</strong>
+              </p>
+
+              <p>
+                <strong>ID del Guía:</strong>
+                ${evaluacion.guia_id}
+              </p>
+
+              <p>
+                <strong>Calificación:</strong>
+                ${evaluacion.calificacion}
+              </p>
+
+              <p>
+                <strong>Resultado:</strong>
+                ${evaluacion.decision}
+              </p>
+
+              <p>
+                <strong>Fecha de evaluación:</strong>
+                ${fecha(evaluacion.fecha_evaluacion)}
+              </p>
+            `;
+
+            contenedorEvaluaciones.appendChild(item);
+
+          });
+
+        }
+
+
+        document.getElementById('antecedentes').style.display =
+          'block';
+
+
+      } catch (err) {
+
+        error.textContent =
+          err.message;
+
+      }
+
+    }
+
+
+    async function registrarEvaluacion() {
+
+      const trabajoId =
+        document.getElementById('trabajoId').value;
+
+      const guiaId =
+        document.getElementById('guiaId').value;
+
+      const calificacion =
+        document.getElementById('calificacion').value;
+
+      const error =
+        document.getElementById('error');
+
+      const success =
+        document.getElementById('success');
+
+
+      error.textContent = '';
+      success.textContent = '';
+
+
+      if (
+        !trabajoId ||
+        !guiaId ||
+        !calificacion
+      ) {
+
+        error.textContent =
+          'Completa todos los datos de la evaluación.';
+
+        return;
+
+      }
+
+
+      try {
+
+        const response = await fetch(
+          `http://localhost:8081/api/trabajos/${trabajoId}/evaluacion`,
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+              guia_id: Number(guiaId),
+              calificacion: Number(calificacion)
+            })
+          }
+        );
+
+
+        const data =
+          await response.json().catch(() => ({}));
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.error ||
+            'No fue posible registrar la evaluación.'
+          );
+
+        }
+
+
+        document.getElementById('calificacion').value =
+          '';
+
+
+        await cargarAntecedentes();
+
+
+        success.textContent =
+          data.mensaje ||
+          'Evaluación del Guía registrada correctamente.';
+
+
+      } catch (err) {
+
+        error.textContent =
+          err.message;
+
+      }
+
+    }
+
+  </script>
+
+</body>
+
+</html>
