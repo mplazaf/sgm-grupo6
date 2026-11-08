@@ -66,21 +66,21 @@ Permite al Jefe de Carrera:
 
 Permite a Secretaria:
 
-- Consultar los antecedentes de un Trabajo de Título y su hito de examen.
-- Visualizar las oportunidades de examen registradas.
-- Registrar la fecha y sala de la primera o segunda oportunidad de defensa.
-- Consultar posteriormente las fechas y salas registradas.
+- Consultar los antecedentes del Trabajo de Título y su hito de examen.
+- Verificar que el Trabajo de Título haya sido aprobado por el Profesor Guía mediante HU-07.
+- Registrar la fecha y sala de la primera oportunidad de defensa cuando el examen esté habilitado.
+- Consultar las oportunidades de examen registradas.
 - Actualizar la fecha y sala de una oportunidad existente.
-- Mantener un máximo de dos oportunidades de examen por Trabajo de Título.
-- Impedir el registro de una segunda oportunidad si no existe la primera.
-- Validar que la segunda oportunidad tenga una fecha posterior a la primera.
-- Impedir reprogramaciones que alteren el orden cronológico de las oportunidades.
+- Impedir el registro de fechas anteriores a la actual.
+- Restringir la programación de defensas a lunes a viernes.
+- Validar el orden cronológico de las oportunidades.
+- Mantener un máximo de dos oportunidades por Trabajo de Título.
 
-**Dependencias pendientes:** La autorización académica para continuar
-hacia el Examen de Título depende de la aprobación del Guía (HU-07).
-La habilitación de una segunda oportunidad depende del resultado
-de la primera defensa (HU-08). Estas validaciones todavía no están
-integradas en el backend de HU-09.
+**Integración con HU-07:** Cuando el Profesor Guía aprueba el Trabajo de Título, el sistema crea o habilita automáticamente el hito de Examen de Título. Secretaría solo puede programar la defensa cuando el trabajo está aprobado y el hito habilitado.
+
+**Dependencia con HU-08:** La creación de una segunda oportunidad permanece bloqueada hasta integrar la verificación de reprobación de la primera defensa. Actualmente se permite registrar la primera oportunidad y actualizar oportunidades previamente existentes, respetando las validaciones correspondientes.
+
+**Validaciones:** El backend rechaza trabajos sin aprobación, hitos no habilitados, fechas pasadas y fechas de fin de semana.
 
 ### HU-10 - Consultar anotaciones de una versión del Trabajo de Título
 
@@ -156,11 +156,6 @@ Puerto:
 
 Contiene las interfaces utilizadas para interactuar con las funcionalidades implementadas.
 
-La funcionalidad HU-09 utiliza los siguientes archivos:
-
-- `FRONTEND/registrar-examen.html`: interfaz para consultar los antecedentes del Trabajo de Título y registrar o actualizar la fecha y sala de las oportunidades de examen.
-- `FRONTEND/registrar-examen.js`: lógica de consulta, registro y actualización de exámenes mediante los servicios de API_VALIDACIONES.
-
 ## database
 
 Contiene el archivo:
@@ -190,7 +185,8 @@ La combinación de `trabajo_id` y `numero_intento` es única, evitando duplicar 
 
 Además, el sistema valida que exista la primera oportunidad antes de registrar la segunda y que las fechas mantengan un orden cronológico correcto.
 
-La autorización académica para rendir el examen depende de HU-07 y HU-08, cuya integración se encuentra pendiente.
+La aprobación académica del Trabajo de Título se verifica mediante HU-07. La autorización de la segunda oportunidad de examen permanece pendiente de integración con HU-08.
+
 ---
 
 # Tecnologías utilizadas
