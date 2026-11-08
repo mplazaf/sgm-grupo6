@@ -172,7 +172,7 @@
         >
 
 
-        <button onclick="registrarEvaluacion()">
+        <button id="btnRegistrarEvaluacion" onclick="registrarEvaluacion()">
           Registrar evaluación
         </button>
 
@@ -259,14 +259,11 @@
         const data =
           await response.json().catch(() => ({}));
 
-
         if (!response.ok) {
-
-          throw new Error(
-            data.error ||
-            'No fue posible consultar los antecedentes.'
-          );
-
+          const mensaje = data.detalle
+           ? `${data.error}: ${data.detalle}`
+           : data.error || 'No fue posible consultar los antecedentes.';
+          throw new Error(mensaje);
         }
 
 
@@ -337,6 +334,27 @@
 
         const evaluaciones =
           data.evaluaciones_guia || [];
+
+        // Comprobar si ya existe una evaluación aprobada
+        const yaAprobado = evaluaciones.some(
+          evaluacion => Number(evaluacion.calificacion) >= 55
+        );
+
+        // Comprobar si ya se alcanzaron los 3 intentos
+        const maximoIntentos = evaluaciones.length >= 3;
+
+        // Bloquear el formulario si corresponde
+        const formularioBloqueado = yaAprobado || maximoIntentos;
+
+        document.getElementById('btnRegistrarEvaluacion').disabled =
+          formularioBloqueado;
+
+        document.getElementById('guiaId').disabled =
+          formularioBloqueado;
+
+        document.getElementById('calificacion').disabled =
+          formularioBloqueado;
+
 
         const contenedorEvaluaciones =
           document.getElementById('listaEvaluaciones');
@@ -497,4 +515,5 @@
   </script>
 
 </body>
+
 </html>
