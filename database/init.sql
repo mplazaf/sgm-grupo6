@@ -20,6 +20,22 @@ CREATE TABLE IF NOT EXISTS hito (
     FOREIGN KEY (trabajo_id) REFERENCES trabajo_de_titulo(id)
 );
 
+
+CREATE TABLE IF NOT EXISTS examen_titulo (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trabajo_id INT NOT NULL,
+    numero_intento TINYINT NOT NULL,
+    fecha DATE NOT NULL,
+    sala VARCHAR(100) NOT NULL,
+    CONSTRAINT chk_numero_intento
+        CHECK (numero_intento BETWEEN 1 AND 2),
+    CONSTRAINT uq_examen_trabajo_intento
+        UNIQUE (trabajo_id, numero_intento),
+    FOREIGN KEY (trabajo_id)
+        REFERENCES trabajo_de_titulo(id)
+);
+
+
 CREATE TABLE IF NOT EXISTS accion_pendiente (
     id INT AUTO_INCREMENT PRIMARY KEY,
     trabajo_id INT NOT NULL,
@@ -46,6 +62,21 @@ CREATE TABLE IF NOT EXISTS anotacion_tt (
     autor VARCHAR(100) DEFAULT 'Guía',
     fecha DATETIME NOT NULL,
     FOREIGN KEY (version_id) REFERENCES version_tt(id)
+);
+
+CREATE TABLE IF NOT EXISTS evaluacion_guia (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trabajo_id INT NOT NULL,
+    guia_id INT NOT NULL,
+    numero_intento INT NOT NULL,
+    calificacion DECIMAL(5,1) NOT NULL,
+    decision VARCHAR(30) NOT NULL,
+    fecha_evaluacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE (trabajo_id, numero_intento),
+
+    FOREIGN KEY (trabajo_id)
+        REFERENCES trabajo_de_titulo(id)
 );
 
 INSERT INTO trabajo_de_titulo (id, nombre, estado)
