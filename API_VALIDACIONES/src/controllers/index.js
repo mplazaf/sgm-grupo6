@@ -526,15 +526,14 @@ const getAntecedentesParaEvaluacion = (req, res) => {
 
 
 // CA2 y CA3:
-// Registrar calificación y decisión del Guía, con límite de 3 intentos
-// y bloqueo de modificaciones si ya se encuentra Aprobado.
+// Registrar calificación del Guía (la decisión se calcula según la nota),
+// con límite de 3 intentos y bloqueo de modificaciones si ya se encuentra Aprobado.
 const registrarEvaluacionGuia = (req, res) => {
   const trabajoId = Number(req.params.id);
 
   const {
     guia_id,
-    calificacion,
-    decision
+    calificacion
   } = req.body || {};
 
   const guiaId = Number(guia_id);
@@ -552,9 +551,8 @@ const registrarEvaluacionGuia = (req, res) => {
     return res.status(400).json({ error: 'La calificación debe estar entre 1.0 y 100.0' });
   }
 
-  if (!['Aprobado', 'Reprobado'].includes(decision)) {
-    return res.status(400).json({ error: 'La decisión debe ser Aprobado o Reprobado' });
-  }
+  // La decisión se calcula automáticamente: mayor o igual a 55 aprueba.
+  const decision = nota >= 55 ? 'Aprobado' : 'Reprobado';
 
   // 1. Verificar que el Trabajo de Título existe
   database.query(
