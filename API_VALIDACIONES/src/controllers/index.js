@@ -492,12 +492,13 @@ const getAntecedentesParaEvaluacion = (req, res) => {
                   id,
                   trabajo_id,
                   guia_id,
+                  numero_intento,
                   calificacion,
                   decision,
                   fecha_evaluacion
                 FROM evaluacion_guia
                 WHERE trabajo_id = ?
-                LIMIT 1
+                ORDER BY numero_intento ASC
                 `,
                 [trabajoId],
                 (err4, evaluaciones) => {
@@ -512,7 +513,7 @@ const getAntecedentesParaEvaluacion = (req, res) => {
                     trabajo: trabajos[0],
                     version_final: versionFinal,
                     revisiones_previas: revisiones,
-                    evaluacion_guia: evaluaciones[0] || null
+                    evaluaciones_guia: evaluaciones
                   });
                 }
               );
@@ -526,8 +527,9 @@ const getAntecedentesParaEvaluacion = (req, res) => {
 
 
 // CA2 y CA3:
-// Registrar calificación del Guía (la decisión se calcula según la nota),
-// con límite de 3 intentos y bloqueo de modificaciones si ya se encuentra Aprobado.
+// Registrar calificación y decisión del Guía. Si el Guía aprueba, el estado permite identificar
+// que la aprobación requerida ya fue cumplida.
+
 const registrarEvaluacionGuia = (req, res) => {
   const trabajoId = Number(req.params.id);
 
@@ -540,110 +542,226 @@ const registrarEvaluacionGuia = (req, res) => {
   const nota = Number(calificacion);
 
   if (!Number.isInteger(trabajoId) || trabajoId <= 0) {
-    return res.status(400).json({ error: 'Identificador de Trabajo de Título inválido' });
+    return res.status(400).json({
+      error: 'Identificador de Trabajo de Título inválido'
+    });
   }
 
   if (!Number.isInteger(guiaId) || guiaId <= 0) {
-    return res.status(400).json({ error: 'Debe ingresar un ID de Guía válido' });
+    return res.status(400).json({
+      error: 'Debe ingresar un ID de Guía válido'
+    });
   }
 
   if (!Number.isFinite(nota) || nota < 1 || nota > 100) {
-    return res.status(400).json({ error: 'La calificación debe estar entre 1.0 y 100.0' });
+    return res.status(400).json({
+      error: 'La calificación debe estar entre 1.0 y 100.0'
+    });
   }
 
-  // La decisión se calcula automáticamente: mayor o igual a 55 aprueba.
-  const decision = nota >= 55 ? 'Aprobado' : 'Reprobado';
-
-  // 1. Verificar que el Trabajo de Título existe
+  // Verificar que el TT exista
   database.query(
-    `SELECT id, estado FROM trabajo_de_titulo WHERE id = ?`,
+    `
+    SELECT id, estado
+    FROM trabajo_de_titulo
+    WHERE id = ?
+    `,
     [trabajoId],
     (err, trabajos) => {
-      if (err) return res.status(500).json({ error: 'Error al consultar el Trabajo de Título' });
-      if (!trabajos[0]) return res.status(404).json({ error: 'Trabajo de Título no encontrado' });
 
-      // 2. Comprobar que exista al menos una versión para poder evaluarlo
+      if (err) {
+        return res.status(500).json({
+          error: 'Error al consultar el Trabajo de Título'
+        });
+      }
+
+      if (!trabajos[0]) {
+        return res.status(404).json({
+          error: 'Trabajo de Título no encontrado'
+        });
+      }
+
+      // Verificar que exista una versión final
       database.query(
-        `SELECT id FROM version_tt WHERE trabajo_id = ? ORDER BY id DESC LIMIT 1`,
+        `
+        SELECT id
+        FROM version_tt
+        WHERE trabajo_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+        `,
         [trabajoId],
         (err2, versiones) => {
-          if (err2) return res.status(500).json({ error: 'Error al comprobar la versión final' });
-          if (!versiones[0]) {
-            return res.status(409).json({ error: 'No se puede evaluar un Trabajo sin una versión registrada' });
+
+          if (err2) {
+            return res.status(500).json({
+              error: 'Error al comprobar la versión final'
+            });
           }
 
-          // 3. NUEVAS REGLAS: Verificar estado de evaluación previa y cantidad de intentos
+          if (!versiones[0]) {
+            return res.status(409).json({
+              error: 'No se puede evaluar un Trabajo de Título sin una versión registrada'
+            });
+          }
+
+          // Consultar evaluaciones anteriores
           database.query(
-            `SELECT decision, intentos FROM evaluacion_guia WHERE trabajo_id = ? LIMIT 1`,
+            `
+            SELECT
+              id,
+              numero_intento,
+              calificacion,
+              decision,
+              fecha_evaluacion
+            FROM evaluacion_guia
+            WHERE trabajo_id = ?
+            ORDER BY numero_intento ASC
+            `,
             [trabajoId],
-            (err3, evaluacionesPrevias) => {
-              if (err3) return res.status(500).json({ error: 'Error al verificar evaluaciones previas' });
+            (err3, evaluaciones) => {
 
-              const evalPrevia = evaluacionesPrevias[0];
-              let intentosActuales = 0;
-
-              if (evalPrevia) {
-                // REGLA A: Si ya está aprobado, bloquear modificaciones
-                if (evalPrevia.decision === 'Aprobado') {
-                  return res.status(403).json({ 
-                    error: 'El Trabajo de Título ya fue Aprobado. No se permiten modificaciones.' 
-                  });
-                }
-                
-                intentosActuales = evalPrevia.intentos || 1;
-                
-                // REGLA B: Limitar a 3 intentos máximos
-                if (intentosActuales >= 3) {
-                  return res.status(403).json({ 
-                    error: 'Se ha alcanzado el límite máximo de 3 evaluaciones (Reprobado) para este trabajo.' 
-                  });
-                }
+              if (err3) {
+                return res.status(500).json({
+                  error: 'Error al consultar las evaluaciones anteriores'
+                });
               }
 
-              const nuevosIntentos = intentosActuales + 1;
+              // Si ya aprobó antes, no permitir más intentos
+              const aprobada = evaluaciones.find(
+                evaluacion => evaluacion.decision === 'Aprobado'
+              );
 
-              // 4. Guardar calificación, decisión, Guía, fecha e intentos
+              if (aprobada) {
+                return res.status(409).json({
+                  error: 'El Trabajo de Título ya fue aprobado por el Guía. No se permiten nuevas evaluaciones.'
+                });
+              }
+
+              // Máximo 3 intentos
+              if (evaluaciones.length >= 3) {
+                return res.status(409).json({
+                  error: 'Se alcanzó el máximo de 3 VTRs permitidos para este Trabajo de Título.'
+                });
+              }
+
+              const numeroIntento = evaluaciones.length + 1;
+
+              // La decisión se obtiene automáticamente
+              const decision =
+                nota >= 55
+                  ? 'Aprobado'
+                  : 'Reprobado';
+
               database.query(
                 `
                 INSERT INTO evaluacion_guia
-                  (trabajo_id, guia_id, calificacion, decision, fecha_evaluacion, intentos)
-                VALUES (?, ?, ?, ?, NOW(), ?)
-                ON DUPLICATE KEY UPDATE
-                  guia_id = VALUES(guia_id),
-                  calificacion = VALUES(calificacion),
-                  decision = VALUES(decision),
-                  fecha_evaluacion = NOW(),
-                  intentos = VALUES(intentos)
+                  (
+                    trabajo_id,
+                    guia_id,
+                    numero_intento,
+                    calificacion,
+                    decision,
+                    fecha_evaluacion
+                  )
+                VALUES (?, ?, ?, ?, ?, NOW())
                 `,
-                [trabajoId, guiaId, nota, decision, nuevosIntentos],
-                (err4) => {
-                  if (err4) return res.status(500).json({ error: 'Error al registrar la evaluación del Guía' });
+                [
+                  trabajoId,
+                  guiaId,
+                  numeroIntento,
+                  nota,
+                  decision
+                ],
+                (err4, resultado) => {
 
-                  // 5. Actualizar el estado del Trabajo de Título
-                  const nuevoEstado = decision === 'Aprobado' ? 'aprobado_por_guia' : 'reprobado_por_guia';
+                  if (err4) {
+                    return res.status(500).json({
+                      error: 'Error al registrar la evaluación del Guía'
+                    });
+                  }
+
+                  const nuevoEstado =
+                    decision === 'Aprobado'
+                      ? 'aprobado_por_guia'
+                      : numeroIntento === 3
+                        ? 'reprobado_max_vtr'
+                        : 'reprobado_por_guia';
+
                   database.query(
-                    `UPDATE trabajo_de_titulo SET estado = ? WHERE id = ?`,
+                    `
+                    UPDATE trabajo_de_titulo
+                    SET estado = ?
+                    WHERE id = ?
+                    `,
                     [nuevoEstado, trabajoId],
                     (err5) => {
-                      if (err5) return res.status(500).json({ error: 'Evaluación registrada, pero falló actualización de estado' });
 
-                      // 6. Actualizar el hito de desarrollo
-                      const estadoHito = decision === 'Aprobado' ? 'completado' : 'en_revision';
+                      if (err5) {
+                        return res.status(500).json({
+                          error: 'La evaluación fue registrada, pero no pudo actualizarse el estado del Trabajo de Título'
+                        });
+                      }
+
+                      const estadoHito =
+                        decision === 'Aprobado'
+                          ? 'completado'
+                          : 'en_revision';
+
                       database.query(
-                        `UPDATE hito SET estado = ? WHERE trabajo_id = ? AND orden_hito = 2`,
+                        `
+                        UPDATE hito
+                        SET estado = ?
+                        WHERE trabajo_id = ?
+                          AND orden_hito = 2
+                        `,
                         [estadoHito, trabajoId],
                         (err6) => {
-                          if (err6) return res.status(500).json({ error: 'Evaluación registrada, pero falló actualización de hito' });
 
-                          return res.status(200).json({
-                            mensaje: 'Evaluación del Guía registrada correctamente',
-                            trabajo_id: trabajoId,
-                            guia_id: guiaId,
-                            calificacion: nota,
-                            decision: decision,
-                            intentos_utilizados: nuevosIntentos,
-                            estado_trabajo: nuevoEstado
-                          });
+                          if (err6) {
+                            return res.status(500).json({
+                              error: 'La evaluación fue registrada, pero no pudo actualizarse el hito'
+                            });
+                          }
+
+                          database.query(
+                            `
+                            SELECT
+                              id,
+                              trabajo_id,
+                              guia_id,
+                              numero_intento,
+                              calificacion,
+                              decision,
+                              fecha_evaluacion
+                            FROM evaluacion_guia
+                            WHERE id = ?
+                            `,
+                            [resultado.insertId],
+                            (err7, rows) => {
+
+                              if (err7) {
+                                return res.status(500).json({
+                                  error: 'Evaluación registrada, pero no pudo recuperarse'
+                                });
+                              }
+
+                              return res.status(201).json({
+                                mensaje:
+                                  decision === 'Aprobado'
+                                    ? 'Evaluación aprobada. No se permiten nuevos intentos.'
+                                    : numeroIntento === 3
+                                      ? 'Evaluación reprobada. Se alcanzó el máximo de 3 VTRs.'
+                                      : `Evaluación reprobada. Quedan ${3 - numeroIntento} intento(s).`,
+                                ...rows[0],
+                                estado_trabajo: nuevoEstado,
+                                intentos_restantes:
+                                  decision === 'Aprobado'
+                                    ? 0
+                                    : 3 - numeroIntento
+                              });
+                            }
+                          );
                         }
                       );
                     }
@@ -661,6 +779,7 @@ const registrarEvaluacionGuia = (req, res) => {
 
 // CA3 y CA4:
 // Consultar posteriormente la evaluación registrada.
+
 const getEvaluacionGuia = (req, res) => {
   const trabajoId = Number(req.params.id);
 
@@ -676,6 +795,7 @@ const getEvaluacionGuia = (req, res) => {
       e.id,
       e.trabajo_id,
       e.guia_id,
+      e.numero_intento,
       e.calificacion,
       e.decision,
       e.fecha_evaluacion,
@@ -685,7 +805,7 @@ const getEvaluacionGuia = (req, res) => {
     INNER JOIN trabajo_de_titulo t
       ON t.id = e.trabajo_id
     WHERE e.trabajo_id = ?
-    LIMIT 1
+    ORDER BY e.numero_intento ASC
     `,
     [trabajoId],
     (err, evaluaciones) => {
@@ -696,13 +816,17 @@ const getEvaluacionGuia = (req, res) => {
         });
       }
 
-      if (!evaluaciones[0]) {
+      if (!evaluaciones.length) {
         return res.status(404).json({
-          error: 'El Trabajo de Título todavía no posee una evaluación del Guía'
+          error: 'El Trabajo de Título todavía no posee evaluaciones del Guía'
         });
       }
 
-      return res.status(200).json(evaluaciones[0]);
+      return res.status(200).json({
+        trabajo_id: trabajoId,
+        estado_trabajo: evaluaciones[0].estado_trabajo,
+        evaluaciones
+      });
     }
   );
 };
