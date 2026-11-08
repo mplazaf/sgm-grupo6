@@ -627,9 +627,9 @@ const registrarEvaluacionGuia = (req, res) => {
                 });
               }
 
-              // Si ya aprobó antes, no permitir más intentos
-              const aprobada = evaluaciones.find(
-                evaluacion => evaluacion.decision === 'Aprobado'
+              // Si ya obtuvo una nota igual o superior a 55, no permitir más intentos
+              const aprobada = evaluaciones.some(
+                evaluacion => Number(evaluacion.calificacion) >= 55
               );
 
               if (aprobada) {
@@ -650,8 +650,8 @@ const registrarEvaluacionGuia = (req, res) => {
               // La decisión se obtiene automáticamente
               const decision =
                 nota >= 55
-                  ? 'Aprobado'
-                  : 'Reprobado';
+                  ? 'aprobado'
+                  : 'rechazado';
 
               database.query(
                 `
@@ -682,7 +682,7 @@ const registrarEvaluacionGuia = (req, res) => {
                   }
 
                   const nuevoEstado =
-                    decision === 'Aprobado'
+                    decision === 'aprobado'
                       ? 'aprobado_por_guia'
                       : numeroIntento === 3
                         ? 'reprobado_max_vtr'
@@ -704,7 +704,7 @@ const registrarEvaluacionGuia = (req, res) => {
                       }
 
                       const estadoHito =
-                        decision === 'Aprobado'
+                        decision === 'aprobado'
                           ? 'completado'
                           : 'en_revision';
 
@@ -748,7 +748,7 @@ const registrarEvaluacionGuia = (req, res) => {
 
                               return res.status(201).json({
                                 mensaje:
-                                  decision === 'Aprobado'
+                                  decision === 'aprobado'
                                     ? 'Evaluación aprobada. No se permiten nuevos intentos.'
                                     : numeroIntento === 3
                                       ? 'Evaluación reprobada. Se alcanzó el máximo de 3 VTRs.'
@@ -756,7 +756,7 @@ const registrarEvaluacionGuia = (req, res) => {
                                 ...rows[0],
                                 estado_trabajo: nuevoEstado,
                                 intentos_restantes:
-                                  decision === 'Aprobado'
+                                  decision === 'aprobado'
                                     ? 0
                                     : 3 - numeroIntento
                               });
@@ -809,10 +809,12 @@ const getEvaluacionGuia = (req, res) => {
     `,
     [trabajoId],
     (err, evaluaciones) => {
-
       if (err) {
+        console.error('ERROR CONSULTANDO evaluacion_guia:', err);
+
         return res.status(500).json({
-          error: 'Error al consultar la evaluación del Guía'
+          error: 'Error al consultar la evaluación del Guía',
+          detalle: err.message
         });
       }
 
