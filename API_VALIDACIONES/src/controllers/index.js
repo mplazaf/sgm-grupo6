@@ -784,9 +784,11 @@ module.exports = {
   getVersionDetalle,
   registrarAnotacion,
   registrarVersionTrabajo,
-  getAntecedentesParaEvaluacion,
+
   getExamenTrabajo,
   guardarExamenTrabajo,
+
+  getAntecedentesParaEvaluacion,
   registrarEvaluacionGuia,
   getEvaluacionGuia,
 };
