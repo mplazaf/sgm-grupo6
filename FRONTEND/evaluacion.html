@@ -4,12 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Evaluación del Guía</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2">
 </head>
 
 <body>
 
-  <div class="sidebar"></div>
+  <div class="sidebar">
     <h2>SGM · Trabajos de Título</h2>
     <a href="seguimiento.html">Seguimiento (Memorista)</a>
     <a href="anotacion.html">Anotaciones (Guía)</a>
@@ -19,6 +19,7 @@
     <a href="evaluacion.html">Evaluación Final (Guía)</a>
     <a href="registrar-examen.html">Registrar examen (Secretaria)</a>
   </div>
+
 
   <div class="content">
 
@@ -116,7 +117,7 @@
       </div>
 
 
-      <!-- EVALUACION EXISTENTE -->
+      <!-- EVALUACIONES REGISTRADAS -->
 
       <div
         class="card"
@@ -125,32 +126,14 @@
       >
 
         <span class="eyebrow">
-          Evaluación registrada
+          Evaluaciones registradas
         </span>
 
         <h2 class="section-title">
-          Resultado de la evaluación
+          Historial de evaluaciones del Guía
         </h2>
 
-        <p>
-          <strong>ID del Guía:</strong>
-          <span id="evalGuia"></span>
-        </p>
-
-        <p>
-          <strong>Calificación:</strong>
-          <span id="evalNota"></span>
-        </p>
-
-        <p>
-          <strong>Resultado:</strong>
-          <span id="evalDecision"></span>
-        </p>
-
-        <p>
-          <strong>Fecha de evaluación:</strong>
-          <span id="evalFecha"></span>
-        </p>
+        <div id="listaEvaluaciones"></div>
 
       </div>
 
@@ -187,27 +170,6 @@
           step="0.1"
           placeholder="Ej: 85.5"
         >
-
-
-        <label for="decision">
-          Decisión final:
-        </label>
-
-        <select id="decision">
-
-          <option value="">
-            Seleccione una opción...
-          </option>
-
-          <option value="Aprobado">
-            Aprobado
-          </option>
-
-          <option value="Reprobado">
-            Reprobado
-          </option>
-
-        </select>
 
 
         <button onclick="registrarEvaluacion()">
@@ -269,11 +231,7 @@
       const error =
         document.getElementById('error');
 
-      const success =
-        document.getElementById('success');
-
       error.textContent = '';
-      success.textContent = '';
 
       document.getElementById('antecedentes').style.display =
         'none';
@@ -375,25 +333,59 @@
         }
 
 
-        // CA4:
-        // Si ya existe una evaluación, mostrarla.
+        // CA4: historial de evaluaciones
 
-        if (data.evaluacion_guia) {
+        const evaluaciones =
+          data.evaluaciones_guia || [];
+
+        const contenedorEvaluaciones =
+          document.getElementById('listaEvaluaciones');
+
+        contenedorEvaluaciones.innerHTML = '';
+
+
+        if (evaluaciones.length > 0) {
 
           document.getElementById('evaluacionExistente').style.display =
             'block';
 
-          document.getElementById('evalGuia').textContent =
-            data.evaluacion_guia.guia_id;
 
-          document.getElementById('evalNota').textContent =
-            data.evaluacion_guia.calificacion;
+          evaluaciones.forEach(evaluacion => {
 
-          document.getElementById('evalDecision').textContent =
-            data.evaluacion_guia.decision;
+            const item =
+              document.createElement('div');
 
-          document.getElementById('evalFecha').textContent =
-            fecha(data.evaluacion_guia.fecha_evaluacion);
+            item.className = 'annotation';
+
+            item.innerHTML = `
+              <p>
+                <strong>VTR ${evaluacion.numero_intento}</strong>
+              </p>
+
+              <p>
+                <strong>ID del Guía:</strong>
+                ${evaluacion.guia_id}
+              </p>
+
+              <p>
+                <strong>Calificación:</strong>
+                ${evaluacion.calificacion}
+              </p>
+
+              <p>
+                <strong>Resultado:</strong>
+                ${evaluacion.decision}
+              </p>
+
+              <p>
+                <strong>Fecha de evaluación:</strong>
+                ${fecha(evaluacion.fecha_evaluacion)}
+              </p>
+            `;
+
+            contenedorEvaluaciones.appendChild(item);
+
+          });
 
         }
 
@@ -423,10 +415,6 @@
       const calificacion =
         document.getElementById('calificacion').value;
 
-      const decision =
-        document.getElementById('decision').value;
-
-
       const error =
         document.getElementById('error');
 
@@ -441,8 +429,7 @@
       if (
         !trabajoId ||
         !guiaId ||
-        !calificacion ||
-        !decision
+        !calificacion
       ) {
 
         error.textContent =
@@ -466,8 +453,7 @@
 
             body: JSON.stringify({
               guia_id: Number(guiaId),
-              calificacion: Number(calificacion),
-              decision
+              calificacion: Number(calificacion)
             })
           }
         );
@@ -487,19 +473,16 @@
         }
 
 
-        success.textContent =
-          'Evaluación del Guía registrada correctamente.';
-
-
         document.getElementById('calificacion').value =
           '';
 
-        document.getElementById('decision').value =
-          '';
 
-
-        // Volver a consultar para demostrar CA3 y CA4
         await cargarAntecedentes();
+
+
+        success.textContent =
+          data.mensaje ||
+          'Evaluación del Guía registrada correctamente.';
 
 
       } catch (err) {
