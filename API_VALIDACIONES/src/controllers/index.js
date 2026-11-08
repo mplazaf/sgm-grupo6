@@ -417,6 +417,13 @@ const guardarExamenTrabajo = (req, res) => {
             });
           }
 
+          // HU-09: La segunda oportunidad requiere autorización de HU-08
+          if (numeroIntento === 2 && !segundo) {
+            return res.status(409).json({
+              error: 'No se puede registrar una segunda oportunidad sin confirmar la reprobación de la primera defensa mediante HU-08'
+            });
+          }
+          
           if (numeroIntento === 2 && fecha <= primero.fecha) {
             return res.status(409).json({
               error: 'La segunda oportunidad debe tener una fecha posterior a la primera'
