@@ -394,6 +394,97 @@ const guardarExamenTrabajo = (req, res) => {
   );
 };
 
+// FUNCIONES HU-07 
+
+// CA1: Consultar los antecedentes (versión final y las revisiones)
+const getAntecedentesParaEvaluacion = async (req, res) => {
+  try {
+    const trabajoId = req.params.id;
+    
+    // Obtener la última versión real
+    const [versiones] = await db.query(
+      'SELECT id, numero_version, fecha_entrega, contenido FROM version_tt WHERE trabajo_id = ? ORDER BY id DESC LIMIT 1',
+      [trabajoId]
+    );
+    
+    if (versiones.length === 0) {
+      return res.status(404).json({ message: 'No hay versiones registradas.' });
+    }
+    
+    const versionFinal = versiones[0];
+    
+    // Obtener las anotaciones reales de esa versión
+    const [revisiones] = await db.query(
+      'SELECT comentario, autor, fecha FROM anotacion_tt WHERE version_id = ? ORDER BY fecha DESC',
+      [versionFinal.id]
+    );
+    
+    res.status(200).json({
+      version_final: versionFinal,
+      revisiones_previas: revisiones
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al consultar antecedentes en la BD' });
+  }
+};
+
+// CA2 y CA3: Registrar decisión y actualizar estados reales
+const registrarEvaluacionGuia = async (req, res) => {
+  try {
+    const trabajoId = req.params.id;
+    const { decision } = req.body; // 'Aprobado' o 'Reprobado'
+
+    if (!decision) return res.status(400).json({ error: 'Falta la decisión final' });
+
+    const nuevoEstado = decision.toLowerCase() === 'aprobado' ? 'aprobado_por_guia' : 'reprobado_por_guia';
+
+    // 1. Actualizar el estado en trabajo_de_titulo
+    await db.query(
+      'UPDATE trabajo_de_titulo SET estado = ? WHERE id = ?',
+      [nuevoEstado, trabajoId]
+    );
+
+    // 2. Si aprueba, marcamos el hito 2 (Desarrollo) como completado
+    if (nuevoEstado === 'aprobado_por_guia') {
+      await db.query(
+        'UPDATE hito SET estado = "completado" WHERE trabajo_id = ? AND orden_hito = 2',
+        [trabajoId]
+      );
+    }
+
+    res.status(200).json({
+      mensaje: 'Evaluación del guía registrada en la BD',
+      trabajo_id: trabajoId,
+      decision: decision,
+      nuevo_estado: nuevoEstado
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar el estado en la BD' });
+  }
+};
+
+// CA4: Consultar estado de la evaluación
+const getEvaluacionGuia = async (req, res) => {
+  try {
+    const trabajoId = req.params.id;
+    
+    // Como no hay tabla de evaluaciones, consultamos el estado real del trabajo
+    const [trabajos] = await db.query(
+      'SELECT estado, actualizado_en FROM trabajo_de_titulo WHERE id = ?',
+      [trabajoId]
+    );
+
+    if (trabajos.length === 0) return res.status(404).json({ error: 'Trabajo no encontrado' });
+
+    res.status(200).json({
+      decision: trabajos[0].estado === 'aprobado_por_guia' ? 'Aprobado' : 'Pendiente/Reprobado',
+      estado_actual: trabajos[0].estado,
+      fecha_actualizacion: trabajos[0].actualizado_en
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al consultar evaluación' });
+  }
+};
 
 module.exports = {
   getSeguimientoTrabajo,
@@ -401,6 +492,9 @@ module.exports = {
   getVersionDetalle,
   registrarAnotacion,
   registrarVersionTrabajo,
+  getAntecedentesParaEvaluacion,
   getExamenTrabajo,
   guardarExamenTrabajo,
+  registrarEvaluacionGuia,
+  getEvaluacionGuia,
 };
