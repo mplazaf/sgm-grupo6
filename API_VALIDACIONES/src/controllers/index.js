@@ -213,7 +213,7 @@ const getExamenTrabajo = (req, res) => {
       e.id AS examen_id,
       e.numero_intento,
       DATE_FORMAT(e.fecha, '%Y-%m-%d') AS fecha,
-      e.sala
+      e.sala,
       e.resultado AS resultado_examen
     FROM trabajo_de_titulo t
     LEFT JOIN hito h
@@ -227,6 +227,8 @@ const getExamenTrabajo = (req, res) => {
 
   database.query(query, [trabajoId], (err, rows) => {
     if (err) {
+      console.error('ERROR SQL HU-09:', err.code, err.sqlMessage);
+
       return res.status(500).json({
         error: 'Error al consultar los exámenes del Trabajo de Título'
       });
@@ -245,7 +247,7 @@ const getExamenTrabajo = (req, res) => {
         numero_intento: row.numero_intento,
         fecha: row.fecha,
         sala: row.sala,
-         resultado: row.resultado_examen
+        resultado: row.resultado_examen
       }));
 
     const primeraReprobada = examenes.some(
@@ -254,16 +256,19 @@ const getExamenTrabajo = (req, res) => {
         examen.resultado === 'reprobado'
     );
 
-    const habilitadoExamen =
+    const habilitadoPrimera =
       Boolean(rows[0].aprobado_por_guia) &&
+      rows[0].estado_trabajo === 'aprobado_por_guia' &&
+      rows[0].estado_hito_examen === 'habilitado';
+
+    const habilitadoSegunda =
+      Boolean(rows[0].aprobado_por_guia) &&
+      rows[0].estado_trabajo === 'segunda_oportunidad_pendiente' &&
       rows[0].estado_hito_examen === 'habilitado' &&
-      (
-        rows[0].estado_trabajo === 'aprobado_por_guia' ||
-        (
-          rows[0].estado_trabajo === 'segunda_oportunidad_pendiente' &&
-          primeraReprobada
-        )
-      );
+      primeraReprobada;
+
+    const habilitadoExamen =
+      habilitadoPrimera || habilitadoSegunda;
 
     res.status(200).json({
       trabajo_id: rows[0].trabajo_id,
@@ -275,10 +280,7 @@ const getExamenTrabajo = (req, res) => {
       hito_examen_id: rows[0].hito_examen_id,
       estado_hito_examen: rows[0].estado_hito_examen,
 
-      habilitado_examen:
-        Boolean(rows[0].aprobado_por_guia) &&
-        rows[0].estado_trabajo === 'aprobado_por_guia' &&
-        rows[0].estado_hito_examen === 'habilitado',
+      habilitado_examen: habilitadoExamen,
 
       programado: examenes.length > 0,
       examenes
@@ -429,19 +431,29 @@ const guardarExamenTrabajo = (req, res) => {
             intento => intento.numero_intento === 2
           );
 
-          // Primera oportunidad: requiere aprobación del Guía
+          // Identificar si la oportunidad ya fue registrada
+          const examenExistente =
+            numeroIntento === 1 ? primero : segundo;
+
+          if (
+            examenExistente &&
+            examenExistente.resultado != null
+          ) {
+            return res.status(409).json({
+              error: 'No se puede modificar una defensa que ya tiene un resultado registrado'
+            });
+          }
+
+          // La primera oportunidad nueva requiere aprobación del Guía
           if (
             numeroIntento === 1 &&
+            !primero &&
             trabajos[0].estado !== 'aprobado_por_guia'
           ) {
             return res.status(409).json({
               error: 'La primera oportunidad solo puede programarse cuando el Trabajo de Título está aprobado por el Guía'
             });
           }
-
-          // Identificar si la oportunidad ya fue registrada
-          const examenExistente =
-            numeroIntento === 1 ? primero : segundo;
 
           // Impedir modificar una defensa que ya fue evaluada por HU-08
           if (
