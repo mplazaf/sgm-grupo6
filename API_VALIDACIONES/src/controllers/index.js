@@ -214,6 +214,7 @@ const getExamenTrabajo = (req, res) => {
       e.numero_intento,
       DATE_FORMAT(e.fecha, '%Y-%m-%d') AS fecha,
       e.sala
+      e.resultado AS resultado_examen
     FROM trabajo_de_titulo t
     LEFT JOIN hito h
       ON h.trabajo_id = t.id
@@ -243,8 +244,26 @@ const getExamenTrabajo = (req, res) => {
         id: row.examen_id,
         numero_intento: row.numero_intento,
         fecha: row.fecha,
-        sala: row.sala
+        sala: row.sala,
+         resultado: row.resultado_examen
       }));
+
+    const primeraReprobada = examenes.some(
+      examen =>
+        Number(examen.numero_intento) === 1 &&
+        examen.resultado === 'reprobado'
+    );
+
+    const habilitadoExamen =
+      Boolean(rows[0].aprobado_por_guia) &&
+      rows[0].estado_hito_examen === 'habilitado' &&
+      (
+        rows[0].estado_trabajo === 'aprobado_por_guia' ||
+        (
+          rows[0].estado_trabajo === 'segunda_oportunidad_pendiente' &&
+          primeraReprobada
+        )
+      );
 
     res.status(200).json({
       trabajo_id: rows[0].trabajo_id,
@@ -372,12 +391,9 @@ const guardarExamenTrabajo = (req, res) => {
           error: 'Trabajo de Título no encontrado'
         });
       }
-
+   
       // Verificar aprobación previa del Profesor Guía
-      if (
-        !Boolean(trabajos[0].aprobado_por_guia) ||
-        trabajos[0].estado !== 'aprobado_por_guia'
-      ) {
+      if (!Boolean(trabajos[0].aprobado_por_guia)) {
         return res.status(409).json({
           error: 'El Trabajo de Título debe estar aprobado por el Guía para programar el examen'
         });
@@ -391,10 +407,12 @@ const guardarExamenTrabajo = (req, res) => {
       }
 
       database.query(
-        `SELECT numero_intento,
-                DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha
-         FROM examen_titulo
-         WHERE trabajo_id = ?`,
+         `SELECT
+              numero_intento,
+              DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha,
+              resultado
+          FROM examen_titulo
+          WHERE trabajo_id = ?`,
         [trabajoId],
         (err2, intentos) => {
           if (err2) {
@@ -411,19 +429,49 @@ const guardarExamenTrabajo = (req, res) => {
             intento => intento.numero_intento === 2
           );
 
-          if (numeroIntento === 2 && !primero) {
+          // Primera oportunidad: requiere aprobación del Guía
+          if (
+            numeroIntento === 1 &&
+            trabajos[0].estado !== 'aprobado_por_guia'
+          ) {
             return res.status(409).json({
-              error: 'Debe existir la primera oportunidad antes de registrar la segunda'
+              error: 'La primera oportunidad solo puede programarse cuando el Trabajo de Título está aprobado por el Guía'
             });
           }
 
-          // HU-09: La segunda oportunidad requiere autorización de HU-08
-          if (numeroIntento === 2 && !segundo) {
+          // Identificar si la oportunidad ya fue registrada
+          const examenExistente =
+            numeroIntento === 1 ? primero : segundo;
+
+          // Impedir modificar una defensa que ya fue evaluada por HU-08
+          if (
+            examenExistente &&
+            examenExistente.resultado !== null &&
+            examenExistente.resultado !== undefined
+          ) {
             return res.status(409).json({
-              error: 'No se puede registrar una segunda oportunidad sin confirmar la reprobación de la primera defensa mediante HU-08'
+              error: 'No se puede modificar una defensa que ya tiene un resultado registrado'
             });
           }
-          
+
+          // Segunda oportunidad: requiere reprobación de la primera defensa
+          if (numeroIntento === 2) {
+            if (!primero) {
+              return res.status(409).json({
+                error: 'Debe existir la primera oportunidad antes de registrar la segunda'
+              });
+            }
+
+            if (
+              primero.resultado !== 'reprobado' ||
+              trabajos[0].estado !== 'segunda_oportunidad_pendiente'
+            ) {
+              return res.status(409).json({
+                error: 'La segunda oportunidad solo puede programarse cuando la primera defensa fue reprobada mediante HU-08'
+              });
+            }
+          }
+
           if (numeroIntento === 2 && fecha <= primero.fecha) {
             return res.status(409).json({
               error: 'La segunda oportunidad debe tener una fecha posterior a la primera'
