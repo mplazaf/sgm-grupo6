@@ -180,18 +180,44 @@
           datos.hito_examen_id === null
             ? 'No registrado'
             : datos.estado_hito_examen;
+    
+      const habilitado = datos.habilitado_examen === true;
 
-        const habilitado = datos.habilitado_examen === true;
+      // Comprobar si HU-08 reprobó la primera defensa
+      const primeraReprobada = examenesRegistrados.some(
+        examen =>
+          Number(examen.numero_intento) === 1 &&
+          examen.resultado === 'reprobado'
+      );
 
-        document.getElementById('estadoHabilitacion').textContent =
-          habilitado
-            ? 'Habilitado para programar el examen'
-            : 'No habilitado: requiere aprobación del Guía y hito de examen habilitado';
-        mostrarExamenes();
-        cargarDatosIntento();
+      // Determinar si corresponde programar la segunda oportunidad
+      const segundaHabilitada =
+        datos.estado_trabajo === 'segunda_oportunidad_pendiente' &&
+        primeraReprobada;
 
-        detalle.style.display = 'block';
-        registro.style.display = habilitado ? 'block' : 'none';
+      // Seleccionar automáticamente la oportunidad correspondiente
+      selectorIntento.value = segundaHabilitada ? '2' : '1';
+
+      // Impedir seleccionar una oportunidad no autorizada
+      selectorIntento.querySelector('option[value="1"]').disabled =
+        segundaHabilitada;
+
+      selectorIntento.querySelector('option[value="2"]').disabled =
+        !segundaHabilitada;
+
+      // Mostrar el estado de habilitación
+      document.getElementById('estadoHabilitacion').textContent =
+        !habilitado
+          ? 'No habilitado para programar el examen'
+          : segundaHabilitada
+            ? 'Habilitado para programar la segunda oportunidad'
+            : 'Habilitado para programar la primera oportunidad';
+
+      mostrarExamenes();
+      cargarDatosIntento();
+
+      detalle.style.display = 'block';
+      registro.style.display = habilitado ? 'block' : 'none';
 
       } catch (error) {
         mensajeError.textContent = error.message;
@@ -213,7 +239,7 @@
 
       const encabezado = document.createElement('tr');
 
-      ['Oportunidad', 'Fecha', 'Sala'].forEach(texto => {
+      ['Oportunidad', 'Fecha', 'Sala', 'Resultado'].forEach(texto => {
         const th = document.createElement('th');
         th.textContent = texto;
         encabezado.appendChild(th);
@@ -227,7 +253,12 @@
         const valores = [
           examen.numero_intento === 1 ? 'Primera' : 'Segunda',
           examen.fecha,
-          examen.sala
+          examen.sala,
+          examen.resultado === 'aprobado'
+            ? 'Aprobado'
+            : examen.resultado === 'reprobado'
+              ? 'Reprobado'
+              : 'Pendiente de evaluación'
         ];
 
         valores.forEach(valor => {
