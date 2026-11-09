@@ -12,5 +12,7 @@ router.put('/api/trabajos/:id/examen', index.guardarExamenTrabajo);
 router.get('/api/trabajos/:id/antecedentes-evaluacion', index.getAntecedentesParaEvaluacion);
 router.post('/api/trabajos/:id/evaluacion', index.registrarEvaluacionGuia);
 router.get('/api/trabajos/:id/evaluacion', index.getEvaluacionGuia);
+router.get('/api/trabajos/:id/historial', index.getHistorialSeguimiento);
 
 module.exports = router;
+
