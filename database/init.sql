@@ -89,6 +89,26 @@ CREATE TABLE IF NOT EXISTS evaluacion_guia (
         REFERENCES trabajo_de_titulo(id)
 );
 
+CREATE TABLE IF NOT EXISTS evento_seguimiento (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trabajo_id INT NOT NULL,
+    tipo VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(255) NOT NULL,
+    fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trabajo_id) REFERENCES trabajo_de_titulo(id)
+);
+
+CREATE TABLE IF NOT EXISTS registro_estado (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trabajo_id INT NOT NULL,
+    nombre_estado VARCHAR(50) NOT NULL,
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NULL,
+    FOREIGN KEY (trabajo_id) REFERENCES trabajo_de_titulo(id)
+);
+
+
+
 INSERT INTO trabajo_de_titulo (id, nombre, estado)
 SELECT 1, 'Optimización de rutas en redes de transporte público', 'en_desarrollo'
 WHERE NOT EXISTS (SELECT 1 FROM trabajo_de_titulo WHERE id = 1);
@@ -135,6 +155,46 @@ WHERE NOT EXISTS (SELECT 1 FROM anotacion_tt WHERE version_id = 2 AND comentario
 INSERT INTO anotacion_tt (comentario, version_id, guia_id, autor, fecha)
 SELECT 'Agregar una comparación con trabajos relacionados.', 2, 1, 'Guía', '2026-05-19 15:10:00'
 WHERE NOT EXISTS (SELECT 1 FROM anotacion_tt WHERE version_id = 2 AND comentario = 'Agregar una comparación con trabajos relacionados.');
+
+
+INSERT INTO registro_estado (trabajo_id, nombre_estado, fecha_inicio, fecha_fin)
+SELECT 1, 'propuesta_aprobada', '2026-05-10', '2026-05-16'
+WHERE NOT EXISTS (SELECT 1 FROM registro_estado WHERE trabajo_id = 1 AND nombre_estado = 'propuesta_aprobada');
+INSERT INTO registro_estado (trabajo_id, nombre_estado, fecha_inicio, fecha_fin)
+SELECT 1, 'en_desarrollo', '2026-05-16', NULL
+WHERE NOT EXISTS (SELECT 1 FROM registro_estado WHERE trabajo_id = 1 AND nombre_estado = 'en_desarrollo');
+
+-- registro_estado para el Trabajo de Título 2 completado
+INSERT INTO registro_estado (trabajo_id, nombre_estado, fecha_inicio, fecha_fin)
+SELECT 2, 'en_desarrollo', '2026-04-01', '2026-04-30'
+WHERE NOT EXISTS (SELECT 1 FROM registro_estado WHERE trabajo_id = 2 AND nombre_estado = 'en_desarrollo');
+INSERT INTO registro_estado (trabajo_id, nombre_estado, fecha_inicio, fecha_fin)
+SELECT 2, 'completado', '2026-04-30', NULL
+WHERE NOT EXISTS (SELECT 1 FROM registro_estado WHERE trabajo_id = 2 AND nombre_estado = 'completado');
+
+-- evento_seguimiento para el Trabajo de título 1
+INSERT INTO evento_seguimiento (trabajo_id, tipo, descripcion, fecha)
+SELECT 1, 'hito_completado', 'Se completó el hito TT1 · Propuesta de Trabajo de Título', '2026-05-10 09:00:00'
+WHERE NOT EXISTS (SELECT 1 FROM evento_seguimiento WHERE trabajo_id = 1 AND descripcion = 'Se completó el hito TT1 · Propuesta de Trabajo de Título');
+INSERT INTO evento_seguimiento (trabajo_id, tipo, descripcion, fecha)
+SELECT 1, 'version_registrada', 'Se registró la versión 1.0 del Trabajo de Título', '2026-05-10 10:00:00'
+WHERE NOT EXISTS (SELECT 1 FROM evento_seguimiento WHERE trabajo_id = 1 AND descripcion = 'Se registró la versión 1.0 del Trabajo de Título');
+INSERT INTO evento_seguimiento (trabajo_id, tipo, descripcion, fecha)
+SELECT 1, 'version_registrada', 'Se registró la versión 2.0 del Trabajo de Título', '2026-05-16 09:00:00'
+WHERE NOT EXISTS (SELECT 1 FROM evento_seguimiento WHERE trabajo_id = 1 AND descripcion = 'Se registró la versión 2.0 del Trabajo de Título');
+INSERT INTO evento_seguimiento (trabajo_id, tipo, descripcion, fecha)
+SELECT 1, 'anotacion_registrada', 'El Guía registró una anotación sobre la versión 2.0', '2026-05-18 10:30:00'
+WHERE NOT EXISTS (SELECT 1 FROM evento_seguimiento WHERE trabajo_id = 1 AND descripcion = 'El Guía registró una anotación sobre la versión 2.0' AND fecha = '2026-05-18 10:30:00');
+INSERT INTO evento_seguimiento (trabajo_id, tipo, descripcion, fecha)
+SELECT 1, 'anotacion_registrada', 'El Guía registró una anotación sobre la versión 2.0', '2026-05-19 15:10:00'
+WHERE NOT EXISTS (SELECT 1 FROM evento_seguimiento WHERE trabajo_id = 1 AND descripcion = 'El Guía registró una anotación sobre la versión 2.0' AND fecha = '2026-05-19 15:10:00');
+INSERT INTO evento_seguimiento (trabajo_id, tipo, descripcion, fecha)
+SELECT 1, 'version_registrada', 'Se registró la versión 3.0 del Trabajo de Título', '2026-05-22 09:00:00'
+WHERE NOT EXISTS (SELECT 1 FROM evento_seguimiento WHERE trabajo_id = 1 AND descripcion = 'Se registró la versión 3.0 del Trabajo de Título');
+
+
+
+
 
 CREATE DATABASE IF NOT EXISTS BD06_TRAMITACION CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE BD06_TRAMITACION;

@@ -951,6 +951,36 @@ const getEvaluacionGuia = (req, res) => {
   );
 };
 
+
+// HU-06 CA1-CA4: historial cronológico de eventos y cambios de estado del Trabajo de Título.
+const getHistorialSeguimiento = (req, res) => {
+  const trabajoId = req.params.id;
+
+  database.query('SELECT id FROM trabajo_de_titulo WHERE id = ?', [trabajoId], (err, trabajos) => {
+    if (err) return res.status(500).json({ error: 'Error al validar el Trabajo de Título' });
+    if (!trabajos[0]) return res.status(404).json({ error: 'Trabajo de Título no encontrado' });
+
+    const query = `
+      SELECT tipo, descripcion, fecha
+      FROM evento_seguimiento
+      WHERE trabajo_id = ?
+
+      UNION ALL
+
+      SELECT 'cambio_estado' AS tipo, CONCAT("Cambio de estado a '", nombre_estado, "'") AS descripcion, fecha_inicio AS fecha
+      FROM registro_estado
+      WHERE trabajo_id = ?
+
+      ORDER BY fecha
+    `;
+
+    database.query(query, [trabajoId, trabajoId], (err2, historial) => {
+      if (err2) return res.status(500).json({ error: 'Error al consultar el historial de seguimiento' });
+      res.status(200).json(historial);
+    });
+  });
+};
+
 // HU-08
 
 // Obtener solo los trabajos con examen agendado que AÚN NO tienen nota
@@ -1075,6 +1105,8 @@ module.exports = {
   getAntecedentesParaEvaluacion,
   registrarEvaluacionGuia,
   getEvaluacionGuia,
+
+  getHistorialSeguimiento,
 
   registrarResultadoExamen,
   getResultadoExamen,

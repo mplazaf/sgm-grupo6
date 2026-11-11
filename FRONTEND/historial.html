@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Historial de Seguimiento</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="sidebar">
+    <h2>SGM · Trabajos de Título</h2>
+
+    <a href="seguimiento.html">Seguimiento (Memorista)</a>
+    <a href="anotacion.html">Anotaciones (Guía)</a>
+    <a href="propuestas.html">Propuestas (Jefe de Carrera)</a>
+    <a href="nueva-version.html">Registrar versión (Memorista)</a>
+
+    <a href="historial.html">Historial de seguimiento (Memorista)</a>
+
+    <a href="revision-propuesta.html">Revisión de Propuesta (Profesor TT1)</a>
+    <a href="consultar-anotaciones.html">Consultar anotaciones (Memorista)</a>
+    <a href="evaluacion.html">Evaluación Final (Guía)</a>
+    <a href="registrar-examen.html">Registrar examen (Secretaria)</a>
+  </div>
+
+  <div class="content">
+    <h1>Historial de Seguimiento del Trabajo de Título</h1>
+    <p class="subtitle">
+      Consulta los eventos y cambios de estado registrados a lo largo del desarrollo de tu Trabajo de Título.
+    </p>
+
+    <div class="card">
+      <label>ID del Trabajo de Título:</label>
+      <input type="number" id="trabajoId" min="1" placeholder="Ej: 1">
+      <button onclick="consultarHistorial()">Consultar historial</button>
+    </div>
+
+    <div class="card" id="historialCard" style="display:none;">
+      <h2 class="section-title">Línea de tiempo</h2>
+      <div id="historial" class="timeline"></div>
+    </div>
+
+    <p class="error" id="error"></p>
+  </div>
+
+  <script>
+
+    const ETIQUETAS_TIPO = {
+      cambio_estado: 'Cambio de estado',
+      hito_completado: 'Hito completado',
+      version_registrada: 'Versión registrada',
+      anotacion_registrada: 'Anotación registrada',
+    };
+
+    function etiquetaTipo(tipo) {
+      return ETIQUETAS_TIPO[tipo] || tipo.replaceAll('_', ' ');
+    }
+
+    function formatearFecha(valor) {
+      if (!valor) return 'Sin fecha';
+      return new Date(valor).toLocaleString('es-CL');
+    }
+
+    function consultarHistorial() {
+
+      const trabajoId = document.getElementById('trabajoId').value;
+
+      const error = document.getElementById('error');
+      error.textContent = '';
+
+      if (!trabajoId) {
+        error.textContent = 'Ingresa el ID de un Trabajo de Título.';
+        return;
+      }
+
+      document.getElementById('historialCard').style.display = 'none';
+
+      fetch(`http://localhost:8081/api/trabajos/${trabajoId}/historial`)
+        .then(async response => {
+
+          if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            throw new Error(body.error || 'No se pudo consultar el historial de seguimiento');
+          }
+
+          return response.json();
+
+        })
+        .then(eventos => {
+
+          document.getElementById('historialCard').style.display = 'block';
+
+          const contenedor = document.getElementById('historial');
+          contenedor.innerHTML = '';
+
+          if (!eventos.length) {
+            contenedor.innerHTML = `
+              <p class="muted">
+                Aún no existen eventos de seguimiento registrados para este Trabajo de Título.
+              </p>
+            `;
+            return;
+          }
+
+          eventos.forEach(evento => {
+
+            const item = document.createElement('div');
+            item.className = 'timeline-item';
+
+            item.innerHTML = `
+              <div>
+                <strong>${etiquetaTipo(evento.tipo)}</strong>
+                <p class="muted">${evento.descripcion}</p>
+              </div>
+              <span class="badge">${formatearFecha(evento.fecha)}</span>
+            `;
+
+            contenedor.appendChild(item);
+
+          });
+
+        })
+        .catch(err => {
+
+          document.getElementById('error').textContent = err.message;
+
+        });
+
+    }
+
+  </script>
+</body>
+</html>
