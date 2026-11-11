@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrar Resultado Examen (HU-08)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="sidebar">
+    <h2>SGM · Trabajos de Título</h2>
+    <a href="seguimiento.html">Seguimiento (Memorista)</a>
+    <a href="anotacion.html">Anotaciones (Guía)</a>
+    <a href="propuestas.html">Propuestas (Jefe de Carrera)</a>
+    <a href="nueva-version.html">Registrar versión (Memorista)</a>
+    <a href="consultar-anotaciones.html">Consultar anotaciones (Memorista)</a>
+    <a href="evaluacion.html">Evaluación Final (Guía)</a>
+    <a href="registrar-examen.html">Registrar examen (Secretaria)</a>
+    <a href="resultado-examen.html">Resultado Examen (Jefe de Carrera)</a>
+  </div>
+  <div class="content">
+    <h1>Resultados de Examen de Título</h1>
+    <p class="subtitle">Verifica los exámenes agendados pendientes de calificación y registra la nota de la defensa (HU-08).</p>
+    
+    <div class="card">
+      <div class="toolbar">
+        <div><label style="font-weight: bold;">Exámenes Pendientes de Evaluación</label></div>
+        <button onclick="cargarTrabajosConExamen()">Actualizar Lista</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tema / Trabajo</th>
+              <th>Fecha Examen</th>
+              <th>Intento</th>
+              <th>Sala</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="listaTrabajos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="detalleExamen" style="display:none;">
+      <span class="eyebrow">Detalle de Evaluación de Defensa</span>
+      <h2 id="nombreTrabajo" class="section-title"></h2>
+      <p><strong>Intento actual:</strong> <span id="numeroIntento"></span></p>
+      <p><strong>Fecha de la Defensa:</strong> <span id="fechaExamen"></span></p>
+      <p><strong>Sala:</strong> <span id="salaExamen"></span></p>
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+      <h3 class="spaced">Registrar Calificación del Examen</h3>
+      <div id="formularioRegistro">
+        <!-- CA1: UI para que el Jefe de Carrera registre el resultado -->
+        <div style="margin-bottom: 15px;">
+          <label style="display:block; margin-bottom:5px;">Calificación (0 a 100):</label>
+          <input type="number" id="inputNota" min="0" max="100" style="padding:8px; width:100%; max-width: 300px; border:1px solid #ccc; border-radius:4px;" placeholder="Ej: 55">
+        </div>
+        <div class="actions">
+          <button class="approve" onclick="confirmarResultadoExamen()">Guardar Calificación</button>
+        </div>
+      </div>
+      <p class="success" id="successMsg"></p>
+      <p class="error" id="errorMsg"></p>
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+      <!-- CA4: Visualización del historial donde los cambios quedan registrados cronológicamente -->
+      <h3 class="spaced">Historial de Cambios de Estado</h3>
+      <div id="historialEstados" style="background:#f9f9f9; padding:15px; border-radius:4px; font-size: 0.9em;"></div>
+    </div>
+  </div>
+
+  <script>
+    let trabajoSeleccionado = null;
+    const API_URL = 'http://localhost:8081/api'; 
+
+    function formatearFecha(valor) {
+      if (!valor) return 'Sin fecha asignada';
+      const fechaObjeto = new Date(valor);
+      return Number.isNaN(fechaObjeto.getTime()) ? 'Fecha inválida' : fechaObjeto.toLocaleDateString('es-CL', { timeZone: 'UTC' });
+    }
+
+    function cargarTrabajosConExamen() {
+      fetch(`${API_URL}/trabajos-examen`)
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.getElementById('listaTrabajos');
+          tbody.innerHTML = '';
+          if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="muted">No hay exámenes pendientes de calificación.</td></tr>`;
+            document.getElementById('detalleExamen').style.display = 'none';
+            return;
+          }
+          data.forEach(t => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${t.nombre || `Trabajo #${t.id}`}</td>
+              <td>${formatearFecha(t.fecha_examen)}</td>
+              <td>${t.numero_intento || 1}</td>
+              <td>${t.sala}</td>
+              <td><button onclick="verDetalleExamen(${t.id})">Calificar</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        })
+        .catch(err => console.error("Error cargando lista:", err));
+    }
+
+    // CA3: Consultar posteriormente el trabajo de título para visualizar resultados y fecha
+    function verDetalleExamen(idTrabajo) {
+      document.getElementById('successMsg').textContent = '';
+      document.getElementById('errorMsg').textContent = '';
+      document.getElementById('inputNota').value = '';
+
+      fetch(`${API_URL}/trabajos/${idTrabajo}/resultado-examen`)
+        .then(res => {
+          if (!res.ok) throw new Error('No se encontraron exámenes para este trabajo');
+          return res.json();
+        })
+        .then(examenes => {
+          const examenActual = examenes[examenes.length - 1];
+          trabajoSeleccionado = { id: idTrabajo, ...examenActual };
+
+          document.getElementById('detalleExamen').style.display = 'block';
+          document.getElementById('nombreTrabajo').textContent = `Trabajo ID: ${idTrabajo}`;
+          document.getElementById('numeroIntento').textContent = examenActual.numero_intento;
+          document.getElementById('fechaExamen').textContent = formatearFecha(examenActual.fecha);
+          document.getElementById('salaExamen').textContent = examenActual.sala;
+          
+          const form = document.getElementById('formularioRegistro');
+          // CA3: Si ya tiene resultado, se muestra el resultado visualmente en lugar del formulario
+          if (examenActual.resultado) {
+            form.style.display = 'none';
+            document.getElementById('successMsg').textContent = `Este examen ya fue registrado como: ${examenActual.resultado.toUpperCase()}`;
+          } else {
+            form.style.display = 'block';
+          }
+          cargarHistorial(idTrabajo);
+        })
+        .catch(err => { document.getElementById('errorMsg').textContent = err.message; });
+    }
+
+    function confirmarResultadoExamen() {
+      if (!trabajoSeleccionado) return;
+      const notaIngresada = document.getElementById('inputNota').value;
+      if (notaIngresada === '') {
+        document.getElementById('errorMsg').textContent = 'Debe ingresar una calificación antes de guardar.';
+        return;
+      }
+      const confirmar = window.confirm(`¿Está seguro de registrar este examen con nota ${notaIngresada}?`);
+      if (!confirmar) return;
+      document.getElementById('errorMsg').textContent = '';
+
+      // CA1: Se envía la calificación para registrar el resultado final
+      fetch(`${API_URL}/trabajos/${trabajoSeleccionado.id}/resultado-examen`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nota: notaIngresada })
+      })
+      .then(async response => {
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || 'Error al registrar el resultado');
+        return body;
+      })
+      .then(data => {
+        // CA2: El backend devuelve el nuevo estado y el frontend informa visualmente el cambio
+        document.getElementById('successMsg').textContent = `${data.mensaje} El nuevo estado del trabajo es: ${data.nuevo_estado}`;
+        document.getElementById('formularioRegistro').style.display = 'none';
+        cargarTrabajosConExamen(); 
+        cargarHistorial(trabajoSeleccionado.id);
+      })
+      .catch(err => { document.getElementById('errorMsg').textContent = err.message; });
+    }
+
+    // CA4: Consulta al historial para que se puedan ver cronológicamente los cambios de estado
+    function cargarHistorial(idTrabajo) {
+      fetch(`${API_URL}/trabajos/${idTrabajo}/historial-estados`)
+        .then(res => res.json())
+        .then(historial => {
+          const divHistorial = document.getElementById('historialEstados');
+          divHistorial.innerHTML = '';
+          if (!historial || historial.length === 0) {
+            divHistorial.innerHTML = '<span class="muted">No hay registros de cambios de estado previos.</span>';
+            return;
+          }
+          historial.forEach(item => {
+            divHistorial.innerHTML += `
+              <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #ccc;">
+                <strong>${formatearFecha(item.fecha_cambio)}</strong><br>
+                Cambio registrado: <span style="color:#666">${item.estado_anterior}</span> ➔ <strong>${item.estado_nuevo}</strong>
+              </div>
+            `;
+          });
+        })
+        .catch(err => console.error('Error cargando historial:', err));
+    }
+
+    cargarTrabajosConExamen();
+  </script>
+</body>
+</html>

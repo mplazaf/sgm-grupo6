@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS examen_titulo (
     numero_intento TINYINT NOT NULL,
     fecha DATE NOT NULL,
     sala VARCHAR(100) NOT NULL,
+    resultado ENUM('aprobado', 'reprobado') DEFAULT NULL,
+    fecha_resultado DATETIME DEFAULT NULL,
     CONSTRAINT chk_numero_intento
         CHECK (numero_intento BETWEEN 1 AND 2),
     CONSTRAINT uq_examen_trabajo_intento
@@ -35,6 +37,14 @@ CREATE TABLE IF NOT EXISTS examen_titulo (
         REFERENCES trabajo_de_titulo(id)
 );
 
+CREATE TABLE IF NOT EXISTS historial_estado_trabajo (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trabajo_id INT NOT NULL,
+    estado_anterior VARCHAR(30) NOT NULL,
+    estado_nuevo VARCHAR(30) NOT NULL,
+    fecha_cambio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trabajo_id) REFERENCES trabajo_de_titulo(id)
+);
 
 CREATE TABLE IF NOT EXISTS accion_pendiente (
     id INT AUTO_INCREMENT PRIMARY KEY,

@@ -202,6 +202,12 @@ const getExamenTrabajo = (req, res) => {
       t.id AS trabajo_id,
       t.nombre AS trabajo_nombre,
       t.estado AS estado_trabajo,
+      EXISTS (
+        SELECT 1
+        FROM evaluacion_guia eg
+        WHERE eg.trabajo_id = t.id
+          AND eg.decision = 'aprobado'
+      ) AS aprobado_por_guia,
       h.id AS hito_examen_id,
       h.estado AS estado_hito_examen,
       e.id AS examen_id,
@@ -244,15 +250,24 @@ const getExamenTrabajo = (req, res) => {
       trabajo_id: rows[0].trabajo_id,
       trabajo_nombre: rows[0].trabajo_nombre,
       estado_trabajo: rows[0].estado_trabajo,
+
+      aprobado_por_guia: Boolean(rows[0].aprobado_por_guia),
+
       hito_examen_id: rows[0].hito_examen_id,
       estado_hito_examen: rows[0].estado_hito_examen,
+
+      habilitado_examen:
+        Boolean(rows[0].aprobado_por_guia) &&
+        rows[0].estado_trabajo === 'aprobado_por_guia' &&
+        rows[0].estado_hito_examen === 'habilitado',
+
       programado: examenes.length > 0,
       examenes
     });
   });
 };
 
- 
+
  // HU-09 CA2 y CA4: registrar o actualizar fecha y sala de un intento.
 const guardarExamenTrabajo = (req, res) => {
   const trabajoId = Number(req.params.id);
@@ -293,8 +308,57 @@ const guardarExamenTrabajo = (req, res) => {
     });
   }
 
+  // Obtener la fecha actual en horario de Chile
+  const partesHoy = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santiago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+
+  const valorFecha = tipo =>
+    partesHoy.find(parte => parte.type === tipo).value;
+
+  const fechaActual =
+    `${valorFecha('year')}-${valorFecha('month')}-${valorFecha('day')}`;
+
+  // No permitir fechas anteriores a hoy
+  if (fecha < fechaActual) {
+    return res.status(400).json({
+      error: 'La fecha del examen no puede ser anterior a la fecha actual'
+    });
+  }
+
+  // Permitir exámenes solamente de lunes a viernes
+  const diaSemana = fechaValidada.getUTCDay();
+
+  if (diaSemana === 0 || diaSemana === 6) {
+    return res.status(400).json({
+      error: 'El examen debe programarse de lunes a viernes'
+    });
+  }
+
   database.query(
-    'SELECT id FROM trabajo_de_titulo WHERE id = ?',
+    `
+    SELECT
+      t.id,
+      t.estado,
+      EXISTS (
+        SELECT 1
+        FROM evaluacion_guia eg
+        WHERE eg.trabajo_id = t.id
+          AND eg.decision = 'aprobado'
+      ) AS aprobado_por_guia,
+      EXISTS (
+        SELECT 1
+        FROM hito h
+        WHERE h.trabajo_id = t.id
+          AND h.nombre = 'Examen de Título'
+          AND h.estado = 'habilitado'
+      ) AS examen_habilitado
+    FROM trabajo_de_titulo t
+    WHERE t.id = ?
+    `,
     [trabajoId],
     (err, trabajos) => {
       if (err) {
@@ -306,6 +370,23 @@ const guardarExamenTrabajo = (req, res) => {
       if (!trabajos[0]) {
         return res.status(404).json({
           error: 'Trabajo de Título no encontrado'
+        });
+      }
+
+      // Verificar aprobación previa del Profesor Guía
+      if (
+        !Boolean(trabajos[0].aprobado_por_guia) ||
+        trabajos[0].estado !== 'aprobado_por_guia'
+      ) {
+        return res.status(409).json({
+          error: 'El Trabajo de Título debe estar aprobado por el Guía para programar el examen'
+        });
+      }
+
+      // Verificar que el hito de examen esté habilitado
+      if (!Boolean(trabajos[0].examen_habilitado)) {
+        return res.status(409).json({
+          error: 'El hito de Examen de Título todavía no está habilitado'
         });
       }
 
@@ -336,6 +417,13 @@ const guardarExamenTrabajo = (req, res) => {
             });
           }
 
+          // HU-09: La segunda oportunidad requiere autorización de HU-08
+          if (numeroIntento === 2 && !segundo) {
+            return res.status(409).json({
+              error: 'No se puede registrar una segunda oportunidad sin confirmar la reprobación de la primera defensa mediante HU-08'
+            });
+          }
+          
           if (numeroIntento === 2 && fecha <= primero.fecha) {
             return res.status(409).json({
               error: 'La segunda oportunidad debe tener una fecha posterior a la primera'
@@ -703,79 +791,109 @@ const registrarEvaluacionGuia = (req, res) => {
                         });
                       }
 
-                      const estadoHito =
-                        decision === 'aprobado'
-                          ? 'completado'
-                          : 'en_revision';
+                    const estadoHito =
+                      decision === 'aprobado'
+                        ? 'completado'
+                        : 'en_revision';
 
+                    // Devolver la evaluación registrada
+                    const responderEvaluacion = () => {
                       database.query(
                         `
-                        UPDATE hito
-                        SET estado = ?
-                        WHERE trabajo_id = ?
-                          AND orden_hito = 2
+                        SELECT
+                          id, trabajo_id, guia_id, numero_intento,
+                          calificacion, decision, fecha_evaluacion
+                        FROM evaluacion_guia
+                        WHERE id = ?
                         `,
-                        [estadoHito, trabajoId],
-                        (err6) => {
-
-                          if (err6) {
+                        [resultado.insertId],
+                        (err7, rows) => {
+                          if (err7) {
                             return res.status(500).json({
-                              error: 'La evaluación fue registrada, pero no pudo actualizarse el hito'
+                              error: 'Evaluación registrada, pero no pudo recuperarse'
                             });
                           }
 
-                          database.query(
-                            `
-                            SELECT
-                              id,
-                              trabajo_id,
-                              guia_id,
-                              numero_intento,
-                              calificacion,
-                              decision,
-                              fecha_evaluacion
-                            FROM evaluacion_guia
-                            WHERE id = ?
-                            `,
-                            [resultado.insertId],
-                            (err7, rows) => {
-
-                              if (err7) {
-                                return res.status(500).json({
-                                  error: 'Evaluación registrada, pero no pudo recuperarse'
-                                });
-                              }
-
-                              return res.status(201).json({
-                                mensaje:
-                                  decision === 'aprobado'
-                                    ? 'Evaluación aprobada. No se permiten nuevos intentos.'
-                                    : numeroIntento === 3
-                                      ? 'Evaluación reprobada. Se alcanzó el máximo de 3 VTRs.'
-                                      : `Evaluación reprobada. Quedan ${3 - numeroIntento} intento(s).`,
-                                ...rows[0],
-                                estado_trabajo: nuevoEstado,
-                                intentos_restantes:
-                                  decision === 'aprobado'
-                                    ? 0
-                                    : 3 - numeroIntento
-                              });
-                            }
-                          );
+                          return res.status(201).json({
+                            mensaje:
+                              decision === 'aprobado'
+                                ? 'Evaluación aprobada. No se permiten nuevos intentos.'
+                                : numeroIntento === 3
+                                  ? 'Evaluación reprobada. Se alcanzó el máximo de 3 VTRs.'
+                                  : `Evaluación reprobada. Quedan ${3 - numeroIntento} intento(s).`,
+                            ...rows[0],
+                            estado_trabajo: nuevoEstado,
+                            intentos_restantes:
+                              decision === 'aprobado' ? 0 : 3 - numeroIntento
+                          });
                         }
                       );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-    }
-  );
-};
+                    };
 
+                    // Crear el hito de examen si fue aprobado y aún no existe
+                    const crearHitoExamen = () => {
+                      if (decision !== 'aprobado') {
+                        return responderEvaluacion();
+                      }
+
+                      database.query(
+                        `
+                        INSERT INTO hito (trabajo_id, nombre, estado, orden_hito)
+                        SELECT ?, 'Examen de Título', 'habilitado', 3
+                        WHERE NOT EXISTS (
+                          SELECT 1 FROM hito
+                          WHERE trabajo_id = ?
+                            AND orden_hito = 3
+                        )
+                        `,
+                        [trabajoId, trabajoId],
+                        (errHito) => {
+                          if (errHito) {
+                            return res.status(500).json({
+                              error: 'Evaluación registrada, pero no pudo crearse el hito de examen'
+                            });
+                          }
+
+                          responderEvaluacion();
+                        }
+                      );
+                    };
+
+                    // Actualizar los hitos existentes
+                    database.query(
+                      `
+                      UPDATE hito
+                      SET estado = CASE
+                        WHEN orden_hito = 2 THEN ?
+                        WHEN orden_hito = 3 AND ? = 'aprobado'
+                          THEN 'habilitado'
+                        ELSE estado
+                      END
+                      WHERE trabajo_id = ?
+                        AND orden_hito IN (2, 3)
+                      `,
+                      [estadoHito, decision, trabajoId],
+                      (err6) => {
+                        if (err6) {
+                          return res.status(500).json({
+                            error: 'La evaluación fue registrada, pero no pudieron actualizarse los hitos'
+                          });
+                        }
+
+                        crearHitoExamen();
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
+  }
+);
+}
 
 // CA3 y CA4:
 // Consultar posteriormente la evaluación registrada.
@@ -833,6 +951,7 @@ const getEvaluacionGuia = (req, res) => {
   );
 };
 
+
 // HU-06 CA1-CA4: historial cronológico de eventos y cambios de estado del Trabajo de Título.
 const getHistorialSeguimiento = (req, res) => {
   const trabajoId = req.params.id;
@@ -862,6 +981,117 @@ const getHistorialSeguimiento = (req, res) => {
   });
 };
 
+// HU-08
+
+// Obtener solo los trabajos con examen agendado que AÚN NO tienen nota
+const getTrabajosConExamen = (req, res) => {
+  const query = `
+    SELECT t.id, t.nombre, e.fecha AS fecha_examen, e.numero_intento, e.sala
+    FROM trabajo_de_titulo t
+    INNER JOIN examen_titulo e ON t.id = e.trabajo_id
+    WHERE e.resultado IS NULL 
+    AND e.id = (SELECT MAX(id) FROM examen_titulo WHERE trabajo_id = t.id)
+  `;
+  database.query(query, (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Error al obtener lista' });
+    return res.status(200).json(rows);
+  });
+};
+
+// HU-08: Registrar el resultado evaluando la nota (>= 55)
+const registrarResultadoExamen = (req, res) => {
+  const trabajoId = Number(req.params.id);
+  const nota = Number(req.body.nota);
+
+  if (!Number.isInteger(trabajoId) || trabajoId <= 0) return res.status(400).json({ error: 'ID inválido' });
+  if (isNaN(nota) || nota < 0 || nota > 100) return res.status(400).json({ error: 'Nota inválida' });
+
+  // Cumple CA1: Dado que se realizó el examen, queda indicado si fue aprobada o reprobada evaluando la nota.
+  const resultadoEvaluado = nota >= 55 ? 'aprobado' : 'reprobado';
+
+  database.query(
+    `SELECT e.id AS examen_id, e.numero_intento, t.estado AS estado_actual 
+     FROM examen_titulo e 
+     INNER JOIN trabajo_de_titulo t ON t.id = e.trabajo_id 
+     WHERE e.trabajo_id = ? ORDER BY e.id DESC LIMIT 1`,
+    [trabajoId],
+    (err, resultados) => {
+      if (err) return res.status(500).json({ error: 'Error' });
+      if (!resultados[0]) return res.status(404).json({ error: 'No hay examen' });
+
+      const { examen_id, numero_intento, estado_actual } = resultados[0];
+
+      // Cumple CA2: Dado que la defensa fue aprobada, el estado cambia a Finalizado.
+      let nuevoEstado = '';
+      if (resultadoEvaluado === 'aprobado') {
+        nuevoEstado = 'finalizado'; 
+      } else if (resultadoEvaluado === 'reprobado' && numero_intento === 1) {
+        nuevoEstado = 'segunda_oportunidad_pendiente';
+      } else if (resultadoEvaluado === 'reprobado' && numero_intento === 2) {
+        nuevoEstado = 'examen_reprobado';
+      }
+
+      // Guardar resultado (Apoya CA1)
+      database.query(
+        `UPDATE examen_titulo SET resultado = ?, fecha_resultado = NOW() WHERE id = ?`,
+        [resultadoEvaluado, examen_id],
+        (err2) => {
+          if (err2) return res.status(500).json({ error: 'Error al guardar' });
+
+          // Actualizar estado del trabajo (CA2)
+          database.query(
+            `UPDATE trabajo_de_titulo SET estado = ? WHERE id = ?`,
+            [nuevoEstado, trabajoId],
+            (err3) => {
+              if (err3) return res.status(500).json({ error: 'Error al actualizar' });
+
+              // Cumple CA4, el cambio de estado queda registrado cronológicamente en el historial.
+              database.query(
+                `INSERT INTO historial_estado_trabajo (trabajo_id, estado_anterior, estado_nuevo, fecha_cambio) VALUES (?, ?, ?, NOW())`,
+                [trabajoId, estado_actual, nuevoEstado],
+                (err4) => {
+                  if (err4) return res.status(500).json({ error: 'Error historial' });
+                  return res.status(200).json({
+                    mensaje: `Examen registrado exitosamente como ${resultadoEvaluado.toUpperCase()} (Nota: ${nota}).`,
+                    nuevo_estado: nuevoEstado
+                  });
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
+};
+
+// Cumple CA3, cuando se consulta posteriormente, se visualiza el resultado de la defensa y su fecha.
+const getResultadoExamen = (req, res) => {
+  const trabajoId = Number(req.params.id);
+  database.query(
+    `SELECT id, numero_intento, fecha, sala, resultado, fecha_resultado 
+     FROM examen_titulo WHERE trabajo_id = ? ORDER BY numero_intento ASC`,
+    [trabajoId],
+    (err, examenes) => {
+      if (err) return res.status(500).json({ error: 'Error al consultar' });
+      return res.status(200).json(examenes);
+    }
+  );
+};
+
+// Apoyo a CA4, consultar el historial cronológico de estados
+const getHistorialEstados = (req, res) => {
+  const trabajoId = Number(req.params.id);
+  database.query(
+    `SELECT id, estado_anterior, estado_nuevo, fecha_cambio FROM historial_estado_trabajo WHERE trabajo_id = ? ORDER BY fecha_cambio DESC`,
+    [trabajoId],
+    (err, historial) => {
+      if (err) return res.status(500).json({ error: 'Error al consultar' });
+      return res.status(200).json(historial);
+    }
+  );
+};
+
 module.exports = {
   getSeguimientoTrabajo,
   getVersionesTrabajo,
@@ -877,4 +1107,9 @@ module.exports = {
   getEvaluacionGuia,
 
   getHistorialSeguimiento,
+
+  registrarResultadoExamen,
+  getResultadoExamen,
+  getHistorialEstados,
+  getTrabajosConExamen,
 };
