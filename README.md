@@ -2,7 +2,7 @@
 
 Repositorio correspondiente al proyecto de la asignatura **INF236 - Análisis y Diseño de Software**.
 
-El proyecto corresponde a un **Sistema de Gestión de Trabajos de Título**, orientado al seguimiento del proceso de titulación y a la interacción entre Memoristas, Guías y Jefatura de Carrera.
+El proyecto corresponde a un **Sistema de Gestión de Trabajos de Título (SGM)**, orientado al seguimiento del proceso de titulación y a la interacción entre Memoristas, Profesor TT1, Guías, Correferentes, Secretaría y Jefatura de Carrera.
 
 ## Integrantes
 
@@ -21,27 +21,28 @@ La documentación del proyecto, incluyendo historias de usuario, modelo de domin
 
 [Ir a la Wiki](https://gitlab.inf.utfsm.cl/inf236-cc-2026-2/grupo06-2026-proyinf/-/wikis/home)
 
-## Video del prototipo
+## Video final - Hito 5
 
-El video de demostración correspondiente al Hito 3 se encuentra disponible en el siguiente enlace:
+El video final de demostración del sistema debe mostrar las historias de usuario comprometidas, su funcionamiento y la trazabilidad con los criterios de aceptación.
 
-[Ver video del prototipo](https://onedrive.live.com/?qt=allmyphotos&photosData=%2Fshare%2F52BFE67361D9DD8B%21s5e7e5d63e5c14c1ba4c769d96a7e1d8f%3Fithint%3Dvideo%26e%3D8Vfkka%26migratedtospo%3Dtrue&cid=52BFE67361D9DD8B&id=52BFE67361D9DD8B%21s5e7e5d63e5c14c1ba4c769d96a7e1d8f&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3YvYy81MmJmZTY3MzYxZDlkZDhiL0lRQmpYWDVld2VVYlRLVEhhZGxxZmgyUEFWNXhNejM0TDNJdjhBeS1fSHJGMW1BP2U9OFZma2th&v=photos)
+**Enlace del video:**  
+[PENDIENTE - PEGAR AQUÍ EL LINK DEL VIDEO FINAL]
 
 ---
 
 # Funcionalidades implementadas
 
-Actualmente el sistema cuenta con funcionalidades asociadas a las siguientes historias de usuario:
+El sistema cuenta con funcionalidades asociadas a las siguientes historias de usuario.
 
 ### HU-01 - Consultar seguimiento del Trabajo de Título
 
-Permite al Memorista consultar:
+Permite al Memorista:
 
-- Estado actual del Trabajo de Título.
-- Hitos asociados al proceso.
-- Estado de cada hito.
-- Acciones pendientes.
-- Responsable de cada acción pendiente.
+- Consultar el estado actual del Trabajo de Título.
+- Visualizar los hitos asociados al proceso.
+- Consultar el estado de cada hito.
+- Visualizar las acciones pendientes.
+- Identificar al responsable de cada acción pendiente.
 
 ### HU-02 - Registrar anotaciones sobre una versión del Trabajo de Título
 
@@ -50,7 +51,17 @@ Permite al Guía:
 - Consultar las versiones registradas de un Trabajo de Título.
 - Revisar el contenido de una versión específica.
 - Consultar las anotaciones asociadas a esa versión.
-- Registrar nuevas anotaciones con autor y fecha.
+- Registrar nuevas anotaciones asociadas a la versión.
+- Mantener autor y fecha de cada anotación.
+
+### HU-03 - Revisar Propuesta de Trabajo de Título para aprobación
+
+Permite al Profesor TT1:
+
+- Consultar el contenido de una versión de la Propuesta de Trabajo de Título pendiente de revisión.
+- Registrar anotaciones asociadas a una versión de la propuesta junto con su autor y fecha.
+- Consultar posteriormente las anotaciones registradas sobre una versión.
+- Mantener disponibles las anotaciones para que el Jefe de Carrera pueda revisarlas durante el proceso de aprobación.
 
 ### HU-04 - Aprobar Propuesta de Trabajo de Título
 
@@ -58,29 +69,67 @@ Permite al Jefe de Carrera:
 
 - Consultar las propuestas registradas.
 - Identificar propuestas pendientes y aprobadas.
-- Consultar el contenido de una propuesta.
-- Revisar las anotaciones realizadas por el Profesor TT1.
+- Revisar el contenido de una propuesta.
+- Consultar las observaciones realizadas por el Profesor TT1.
 - Aprobar una propuesta pendiente.
+- Consultar posteriormente su estado de aprobación.
+
+### HU-05 - Registrar evaluación del Correferente
+
+Permite al Correferente:
+
+- Consultar los antecedentes de un Examen de Título asociado al Trabajo de Título.
+- Revisar la versión final correspondiente.
+- Registrar una calificación asociada al Examen de Título.
+- Mantener registrada la fecha y el tipo de evaluación.
+- Consultar posteriormente la evaluación registrada.
+- Distinguir la evaluación del Correferente de las evaluaciones realizadas por otros participantes.
+
+### HU-06 - Consultar historial de seguimiento
+
+Permite al Memorista:
+
+- Consultar eventos de seguimiento del Trabajo de Título.
+- Revisar los eventos en orden cronológico.
+- Identificar el tipo y fecha de cada evento.
+- Consultar los cambios de estado registrados.
+- Mantener disponibles los registros anteriores al incorporar nuevos eventos.
+
+### HU-07 - Registrar evaluación del Guía
+
+Permite al Guía:
+
+- Consultar la versión final del Trabajo de Título y las revisiones realizadas durante su desarrollo.
+- Registrar la evaluación del Trabajo de Título.
+- Asociar una calificación y una decisión de aprobación.
+- Consultar posteriormente la calificación, resultado y fecha de evaluación.
+- Identificar que la aprobación del Guía requerida para continuar hacia el Examen de Título se encuentra cumplida.
+
+### HU-08 - Registrar resultado del Examen de Título y finalizar el proceso
+
+Permite al Jefe de Carrera:
+
+- Consultar los exámenes registrados.
+- Identificar la oportunidad específica de examen.
+- Registrar una nota entre 0 y 100.
+- Determinar automáticamente si la defensa fue aprobada o reprobada.
+- Cambiar el Trabajo de Título a `finalizado` cuando el examen es aprobado.
+- Habilitar una segunda oportunidad cuando la primera es reprobada.
+- Cambiar el estado a `examen_reprobado` cuando la segunda oportunidad es reprobada.
+- Consultar posteriormente el resultado y su fecha.
+- Mantener un historial cronológico de los cambios de estado.
+- Impedir volver a calificar una oportunidad que ya posee resultado.
 
 ### HU-09 - Registrar información del Examen de Título
 
-Permite a Secretaria:
+Permite a Secretaría:
 
-- Consultar los antecedentes del Trabajo de Título y su hito de examen.
-- Verificar que el Trabajo de Título haya sido aprobado por el Profesor Guía mediante HU-07.
-- Registrar la fecha y sala de la primera oportunidad de defensa cuando el examen esté habilitado.
-- Consultar las oportunidades de examen registradas.
-- Actualizar la fecha y sala de una oportunidad existente.
-- Impedir el registro de fechas anteriores a la actual.
-- Restringir la programación de defensas a lunes a viernes.
-- Validar el orden cronológico de las oportunidades.
-- Mantener un máximo de dos oportunidades por Trabajo de Título.
-
-**Integración con HU-07:** Cuando el Profesor Guía aprueba el Trabajo de Título, el sistema crea o habilita automáticamente el hito de Examen de Título. Secretaría solo puede programar la defensa cuando el trabajo está aprobado y el hito habilitado.
-
-**Dependencia con HU-08:** La creación de una segunda oportunidad permanece bloqueada hasta integrar la verificación de reprobación de la primera defensa. Actualmente se permite registrar la primera oportunidad y actualizar oportunidades previamente existentes, respetando las validaciones correspondientes.
-
-**Validaciones:** El backend rechaza trabajos sin aprobación, hitos no habilitados, fechas pasadas y fechas de fin de semana.
+- Consultar la información de un Trabajo de Título que se encuentra en condiciones de continuar hacia el Examen de Título.
+- Identificar el examen correspondiente.
+- Registrar la fecha y sala de la defensa.
+- Consultar posteriormente la fecha y sala registradas.
+- Modificar la información del examen.
+- Consultar nuevamente el examen y visualizar la fecha y sala vigentes.
 
 ### HU-10 - Consultar anotaciones de una versión del Trabajo de Título
 
@@ -88,10 +137,10 @@ Permite al Memorista:
 
 - Consultar las versiones registradas de su Trabajo de Título.
 - Seleccionar una versión específica.
-- Revisar el contenido de la versión seleccionada.
+- Revisar su contenido.
 - Consultar las anotaciones realizadas por el Guía.
-- Visualizar el autor y la fecha de cada anotación.
-- Recibir un aviso cuando una versión no posee anotaciones registradas.
+- Visualizar autor y fecha de cada anotación.
+- Recibir un aviso cuando una versión no posee anotaciones.
 
 ### HU-11 - Registrar nueva versión del Trabajo de Título
 
@@ -100,9 +149,9 @@ Permite al Memorista:
 - Registrar el contenido de una nueva versión.
 - Generar automáticamente un número de versión correlativo.
 - Registrar automáticamente su fecha de entrega.
-- Mantener las versiones anteriores en el historial.
+- Mantener disponibles las versiones anteriores.
 - Impedir entregas con contenido vacío.
-- Impedir nuevas entregas cuando el Trabajo de Título se encuentra completado.
+- Impedir nuevas entregas cuando el Trabajo de Título ya se encuentra completado.
 
 ---
 
@@ -121,12 +170,14 @@ grupo06-2026-proyinf/
 └── README.md
 ```
 
-
 ## API_TRAMITACION
 
-API destinada a las operaciones relacionadas con la tramitación de las propuestas de Trabajo de Título.
+API destinada a las operaciones relacionadas con la tramitación y revisión de las propuestas de Trabajo de Título.
 
-Actualmente contiene las funcionalidades correspondientes principalmente a **HU-04**.
+Contiene principalmente las funcionalidades de:
+
+- HU-03
+- HU-04
 
 Puerto:
 
@@ -136,12 +187,16 @@ Puerto:
 
 ## API_VALIDACIONES
 
-API utilizada para las funcionalidades asociadas al seguimiento, versiones, anotaciones y gestión de los Exámenes de Título.
+API utilizada para seguimiento, versiones, anotaciones, historial, evaluaciones y gestión del Examen de Título.
 
-Actualmente contiene las funcionalidades correspondientes a:
+Contiene principalmente las funcionalidades de:
 
 - HU-01
 - HU-02
+- HU-05
+- HU-06
+- HU-07
+- HU-08
 - HU-09
 - HU-10
 - HU-11
@@ -154,38 +209,17 @@ Puerto:
 
 ## FRONTEND
 
-Contiene las interfaces utilizadas para interactuar con las funcionalidades implementadas.
+Contiene las interfaces utilizadas para interactuar con las 11 historias de usuario implementadas.
 
 ## database
 
-Contiene el archivo:
+Contiene:
 
 ```text
 database/init.sql
 ```
 
-Este archivo crea las bases de datos y los datos iniciales utilizados por el sistema.
-
-
-### Tabla examen_titulo (HU-09)
-
-La tabla `examen_titulo`, perteneciente a `BD06_VALIDACIONES`, almacena la información de las oportunidades de Examen de Título.
-
-Sus campos principales son:
-
-- `id`: identificador del examen.
-- `trabajo_id`: identificador del Trabajo de Título asociado.
-- `numero_intento`: primera o segunda oportunidad de examen.
-- `fecha`: fecha programada para la defensa.
-- `sala`: sala asignada para la defensa.
-
-Cada Trabajo de Título puede tener un máximo de dos oportunidades de examen, identificadas mediante `numero_intento` (1 o 2).
-
-La combinación de `trabajo_id` y `numero_intento` es única, evitando duplicar una misma oportunidad.
-
-Además, el sistema valida que exista la primera oportunidad antes de registrar la segunda y que las fechas mantengan un orden cronológico correcto.
-
-La aprobación académica del Trabajo de Título se verifica mediante HU-07. La autorización de la segunda oportunidad de examen permanece pendiente de integración con HU-08.
+El archivo crea las bases de datos, tablas y datos iniciales utilizados para probar distintos estados del flujo del Trabajo de Título.
 
 ---
 
@@ -219,13 +253,13 @@ mysql
 
 # Dependencias
 
-Las dos API utilizan las siguientes dependencias:
+Las API utilizan las siguientes dependencias:
 
 - `cors`: permite solicitudes entre el frontend y las API ejecutadas en distintos puertos.
-- `dotenv`: permite cargar las variables definidas en los archivos `.env`.
+- `dotenv`: carga las variables definidas en los archivos `.env`.
 - `express`: framework utilizado para implementar las API REST.
 - `morgan`: registra las solicitudes HTTP recibidas.
-- `mysql2`: permite realizar la conexión entre Node.js y MySQL.
+- `mysql2`: permite la conexión entre Node.js y MySQL.
 
 ---
 
@@ -240,42 +274,46 @@ Contiene información relacionada con:
 - Trabajos de Título.
 - Hitos.
 - Acciones pendientes.
-- Versiones.
+- Versiones del Trabajo de Título.
 - Anotaciones sobre versiones.
+- Evaluaciones del Guía.
+- Exámenes de Título.
+- Evaluaciones asociadas al examen.
+- Historial de cambios de estado.
+- Eventos de seguimiento.
 
 ## BD06_TRAMITACION
 
 Contiene información relacionada con:
 
 - Propuestas de Trabajo de Título.
-- Anotaciones realizadas sobre las propuestas.
+- Versiones de propuestas.
+- Anotaciones realizadas durante la revisión.
 - Estado de aprobación de las propuestas.
 
 ---
 
 # Variables de configuración
 
-Cada API requiere un archivo `.env` local para definir su puerto y los parámetros de conexión a MySQL.
+Cada API requiere un archivo `.env` local con su puerto y los parámetros de conexión a MySQL.
 
-Por razones de configuración y seguridad, los archivos `.env` **no se versionan en el repositorio**.
-
-En su lugar, cada API incluye un archivo:
-
-```text
-.env.example
-```
-
-que contiene la configuración necesaria para ejecutar el proyecto en el entorno local.
+Los archivos `.env` no se versionan. Cada API incluye un `.env.example`.
 
 ## API_TRAMITACION
 
-El archivo:
+Crear:
+
+```text
+API_TRAMITACION/.env
+```
+
+a partir de:
 
 ```text
 API_TRAMITACION/.env.example
 ```
 
-contiene:
+Configuración esperada:
 
 ```env
 PORT_API=8080
@@ -286,32 +324,21 @@ DB_PORT=3306
 DB_HOST="host.docker.internal"
 ```
 
-Antes de levantar la API se debe crear una copia de `.env.example` con el nombre:
-
-```text
-.env
-```
-
-La estructura esperada es:
-
-```text
-API_TRAMITACION/
-├── .env
-├── .env.example
-├── Dockerfile
-├── docker-compose.yml
-└── ...
-```
-
 ## API_VALIDACIONES
 
-El archivo:
+Crear:
+
+```text
+API_VALIDACIONES/.env
+```
+
+a partir de:
 
 ```text
 API_VALIDACIONES/.env.example
 ```
 
-contiene:
+Configuración esperada:
 
 ```env
 PORT_API=8081
@@ -321,25 +348,6 @@ DB_NAME="BD06_VALIDACIONES"
 DB_PORT=3306
 DB_HOST="host.docker.internal"
 ```
-
-Antes de levantar la API se debe crear una copia de `.env.example` con el nombre:
-
-```text
-.env
-```
-
-La estructura esperada es:
-
-```text
-API_VALIDACIONES/
-├── .env
-├── .env.example
-├── Dockerfile
-├── docker-compose.yml
-└── ...
-```
-
-Por razones de configuración y seguridad, los archivos `.env` no se versionan en el repositorio. En su lugar, cada API incluye un archivo `.env.example` con la configuración necesaria para ejecutar el proyecto en el entorno local.
 
 ---
 
@@ -363,186 +371,235 @@ git clone https://gitlab.inf.utfsm.cl/inf236-cc-2026-2/grupo06-2026-proyinf.git
 cd grupo06-2026-proyinf
 ```
 
-## 3. Levantar MySQL
+## 3. Crear los archivos `.env`
 
-Desde la carpeta raíz del proyecto:
+En cada API copiar el archivo `.env.example` como `.env`.
+
+## 4. Levantar MySQL
+
+Desde la carpeta raíz:
 
 ```bash
 docker compose up -d
 ```
 
-Esto inicia MySQL en:
+La base de datos queda disponible en:
 
 ```text
 localhost:3306
 ```
 
-Al crearse por primera vez el volumen de MySQL, el archivo:
-
-```text
-database/init.sql
-```
-
-creará automáticamente las bases de datos `BD06_VALIDACIONES` y `BD06_TRAMITACION` junto con los datos iniciales.
-
-Se puede verificar el contenedor ejecutando:
-
-```bash
-docker ps
-```
-
-## 4. Levantar API_TRAMITACION
-
-Desde la raíz:
+## 5. Levantar API_TRAMITACION
 
 ```bash
 cd API_TRAMITACION
 docker compose up --build -d
 ```
 
-La API estará disponible en:
+Disponible en:
 
 ```text
 http://localhost:8080
 ```
 
-## 5. Levantar API_VALIDACIONES
-
-Desde `API_TRAMITACION`:
+## 6. Levantar API_VALIDACIONES
 
 ```bash
 cd ../API_VALIDACIONES
 docker compose up --build -d
 ```
 
-La API estará disponible en:
+Disponible en:
 
 ```text
 http://localhost:8081
 ```
 
-## 6. Levantar el frontend
-
-Desde `API_VALIDACIONES`:
+## 7. Levantar el frontend
 
 ```bash
 cd ../FRONTEND
 python3 -m http.server 5500
 ```
 
-En sistemas donde el comando sea `python` en lugar de `python3` se puede utilizar:
+En Windows también puede utilizarse:
 
 ```bash
 python -m http.server 5500
 ```
 
-El servidor debe permanecer ejecutándose mientras se utiliza el frontend.
+Abrir:
+
+```text
+http://localhost:5500/seguimiento.html
+```
 
 ---
 
 # Pantallas disponibles
 
-| Funcionalidad                             | URL                                                  |
-| ----------------------------------------- | ---------------------------------------------------- |
-| Seguimiento del Trabajo de Título - HU-01 | `http://localhost:5500/seguimiento.html`             |
-| Registrar anotaciones - HU-02             | `http://localhost:5500/anotacion.html`               |
-| Aprobar propuesta - HU-04                 | `http://localhost:5500/propuestas.html`              |
-| Registrar examen - HU-09                  | `http://localhost:5500/registrar-examen.html`      |
-| Consultar anotaciones - HU-10             | `http://localhost:5500/consultar-anotaciones.html`   |
-| Registrar nueva versión - HU-11           | `http://localhost:5500/nueva-version.html`           |
+| HU | Funcionalidad | URL |
+|---|---|---|
+| HU-01 | Seguimiento del Trabajo de Título | `http://localhost:5500/seguimiento.html` |
+| HU-02 | Registrar anotaciones | `http://localhost:5500/anotacion.html` |
+| HU-03 | Revisar Propuesta de Trabajo de Título para aprobación | `http://localhost:5500/revision-propuesta.html` |
+| HU-04 | Aprobar propuesta | `http://localhost:5500/propuestas.html` |
+| HU-05 | Evaluación del Correferente | `http://localhost:5500/evaluacion-correferente.html` |
+| HU-06 | Historial de seguimiento | `http://localhost:5500/historial.html` |
+| HU-07 | Evaluación del Guía | `http://localhost:5500/evaluacion.html` |
+| HU-08 | Resultado del Examen de Título | `http://localhost:5500/resultado-examen.html` |
+| HU-09 | Registrar Examen de Título | `http://localhost:5500/registrar-examen.html` |
+| HU-10 | Consultar anotaciones | `http://localhost:5500/consultar-anotaciones.html` |
+| HU-11 | Registrar nueva versión | `http://localhost:5500/nueva-version.html` |
 
 ---
 
 # Endpoints principales
 
-## API_VALIDACIONES
-
-### Consultar seguimiento de un Trabajo de Título
-
-```text
-GET /api/trabajos/:id/seguimiento
-```
-
-### Consultar versiones de un Trabajo de Título
-
-```text
-GET /api/trabajos/:id/versiones
-```
-
-### Consultar una versión específica
-
-```text
-GET /api/versiones/:id
-```
-
-### Registrar una anotación sobre una versión
-
-```text
-POST /api/versiones/:id/anotaciones
-```
-
-### Registrar una nueva versión
-
-```text
-POST /api/trabajos/:id/versiones
-```
-### Consultar los exámenes de un Trabajo de Título (HU-09)
-
-```text
-GET /api/trabajos/:id/examen
-```
-
-Permite consultar los antecedentes del Trabajo de Título y las oportunidades de examen registradas, incluyendo el número de intento, la fecha y la sala de cada defensa.
-
-### Registrar o actualizar un Examen de Título (HU-09)
-
-```text
-PUT /api/trabajos/:id/examen
-```
-
-Permite registrar o actualizar la fecha y sala de una oportunidad de examen.
-
-El cuerpo de la solicitud debe contener:
-
-```json
-{
-  "numero_intento": 1,
-  "fecha": "2026-12-15",
-  "sala": "Sala A-101"
-}
-```
-
-El número de intento puede ser `1` o `2`. El sistema exige que exista la primera oportunidad antes de registrar la segunda y valida que las fechas de ambas defensas mantengan un orden cronológico correcto.
-
-**Limitación actual:** La autorización académica del examen y la habilitación de una segunda oportunidad están pendientes de integración con HU-07 y HU-08.
-
-
 ## API_TRAMITACION
 
-### Consultar propuestas
-
 ```text
-GET /api/propuestas
+GET  /api/propuestas
+GET  /api/propuestas/:id
+PUT  /api/propuestas/:id/aprobar
+GET  /api/propuestas/:id/versiones
+GET  /api/version-propuesta/:id
+POST /api/version-propuesta/:id/anotaciones
 ```
 
-También es posible filtrar por estado:
+## API_VALIDACIONES
 
 ```text
-GET /api/propuestas?estado=pendiente
-GET /api/propuestas?estado=aprobada
+GET  /api/trabajos/:id/seguimiento
+GET  /api/trabajos/:id/versiones
+GET  /api/versiones/:id
+POST /api/versiones/:id/anotaciones
+POST /api/trabajos/:id/versiones
+
+GET  /api/trabajos/:id/historial
+
+GET  /api/trabajos/:id/antecedentes-evaluacion
+POST /api/trabajos/:id/evaluacion
+GET  /api/trabajos/:id/evaluacion
+
+GET  /api/trabajos-examen
+POST /api/trabajos/:id/resultado-examen/:examenId
+GET  /api/trabajos/:id/resultado-examen
+GET  /api/trabajos/:id/historial-estados
+
+GET  /api/trabajos/:id/examen
+PUT  /api/trabajos/:id/examen
+
+GET  /api/trabajos/:id/antecedentes-correferente
+POST /api/examenes/:id/evaluacion-correferente
 ```
 
-### Consultar detalle de una propuesta
+---
 
-```text
-GET /api/propuestas/:id
-```
+# Guía de prueba
 
-### Aprobar una propuesta
+Esta sección describe los pasos necesarios para reproducir los criterios de aceptación de cada historia de usuario comprometida.
 
-```text
-PUT /api/propuestas/:id/aprobar
-```
+Antes de comenzar, se deben levantar MySQL, ambas API y el frontend siguiendo la sección **Cómo levantar el proyecto**.
+
+## HU-01 - Consultar seguimiento del Trabajo de Título
+
+**Pantalla:** `seguimiento.html`
+
+- **CA1:** Ingresar el ID `1` y consultar su seguimiento. Verificar que se muestre el estado actual del Trabajo de Título.
+- **CA2:** En el mismo resultado, revisar los hitos asociados y comprobar que se pueda distinguir cuáles están completados, pendientes o en revisión.
+- **CA3:** Revisar las acciones pendientes y verificar que cada una muestre la acción y su responsable.
+- **CA4:** Realizar una operación que cambie información del Trabajo de Título o de uno de sus hitos y volver a consultar el seguimiento. Verificar que se muestre la información actualizada.
+
+## HU-02 - Registrar anotaciones sobre una versión del Trabajo de Título
+
+**Pantalla:** `anotacion.html`
+
+- **CA1:** Consultar el Trabajo de Título `1`, seleccionar una versión y verificar que se pueda visualizar su contenido.
+- **CA2:** Registrar una anotación sobre la versión seleccionada y comprobar que quede asociada a esa versión junto con autor y fecha.
+- **CA3:** Consultar las anotaciones disponibles y verificar que se pueda identificar a qué versión corresponde cada una.
+- **CA4:** Consultar dos versiones distintas y comprobar que cada una muestre únicamente las anotaciones asociadas a esa versión.
+
+## HU-03 - Revisar Propuesta de Trabajo de Título para aprobación
+
+**Pantalla:** `revision-propuesta.html`
+
+- **CA1:** Consultar una propuesta con versión pendiente de revisión y verificar que el Profesor TT1 pueda visualizar el contenido de esa versión.
+- **CA2:** Registrar una anotación sobre la versión y verificar que quede asociada a ella junto con autor y fecha.
+- **CA3:** Volver a consultar la misma versión y comprobar que las anotaciones registradas anteriormente permanezcan disponibles.
+- **CA4:** Abrir `propuestas.html` como Jefe de Carrera, seleccionar la misma propuesta y verificar que se puedan visualizar las anotaciones asociadas a la versión revisada.
+
+## HU-04 - Aprobar Propuesta de Trabajo de Título
+
+**Pantalla:** `propuestas.html`
+
+- **CA1:** Abrir una propuesta pendiente, por ejemplo la propuesta `1`, y verificar que se muestre su contenido junto con las anotaciones registradas durante su revisión.
+- **CA2:** Presionar **Aprobar propuesta**, confirmar la acción y comprobar que el estado cambie a `Aprobada`.
+- **CA3:** Utilizar el filtro de estado y verificar que se puedan distinguir las propuestas pendientes de las ya aprobadas.
+- **CA4:** Volver a consultar una propuesta aprobada y comprobar que el sistema muestre su estado `Aprobada` y que puede continuar hacia la siguiente etapa.
+
+## HU-05 - Registrar evaluación del Correferente
+
+**Pantalla:** `evaluacion-correferente.html`
+
+- **CA1:** Consultar un Trabajo de Título con Examen de Título asociado y verificar que se pueda revisar su versión final.
+- **CA2:** Registrar la calificación del Correferente y comprobar que quede asociada al Examen de Título junto con la fecha y el tipo de evaluación.
+- **CA3:** Volver a consultar los antecedentes del Examen de Título y verificar que se visualicen la calificación, fecha y tipo de evaluación registrados.
+- **CA4:** Revisar las evaluaciones asociadas al examen y comprobar que la evaluación del Correferente se pueda distinguir de las realizadas por otros participantes.
+
+## HU-06 - Consultar historial de seguimiento
+
+**Pantalla:** `historial.html`
+
+- **CA1:** Consultar el historial del Trabajo de Título `1` y verificar que los eventos aparezcan en orden cronológico.
+- **CA2:** Revisar los eventos y comprobar que cada uno muestre su tipo y fecha de registro.
+- **CA3:** Verificar que los cambios de estado del Trabajo de Título aparezcan en el historial junto con sus fechas.
+- **CA4:** Registrar una nueva acción que genere un evento de seguimiento, volver a consultar el historial y comprobar que el nuevo evento aparezca sin eliminar los registros anteriores.
+
+## HU-07 - Registrar evaluación del Guía
+
+**Pantalla:** `evaluacion.html`
+
+- **CA1:** Consultar los antecedentes de un Trabajo de Título con versión final y verificar que el Guía pueda revisar la versión final y las revisiones realizadas durante su desarrollo.
+- **CA2:** Registrar la evaluación del Guía y comprobar que queden asociadas la calificación y la decisión de aprobación.
+- **CA3:** Consultar nuevamente el estado del Trabajo de Título y verificar que se pueda identificar que la aprobación del Guía requerida para continuar hacia el Examen de Título se encuentra cumplida.
+- **CA4:** Consultar posteriormente los antecedentes del Trabajo de Título y verificar que se muestren la calificación, resultado y fecha de evaluación.
+
+## HU-08 - Registrar resultado del Examen de Título y finalizar el proceso
+
+**Pantalla:** `resultado-examen.html`
+
+- **CA1:** Seleccionar un examen pendiente, registrar una nota y comprobar que el sistema indique si la defensa fue aprobada o reprobada.
+- **CA2:** Registrar una nota aprobatoria en una defensa pendiente y verificar que el Trabajo de Título cambie al estado `Finalizado`.
+- **CA3:** Volver a consultar el Trabajo de Título y comprobar que se pueda visualizar el resultado de la defensa y la fecha correspondiente.
+- **CA4:** Consultar el historial de estados y verificar que el cambio producido por el resultado del examen quede registrado cronológicamente.
+
+## HU-09 - Registrar información del Examen de Título
+
+**Pantalla:** `registrar-examen.html`
+
+- **CA1:** Consultar un Trabajo de Título que se encuentre en condiciones de continuar hacia el Examen de Título y verificar que Secretaría pueda identificar el examen correspondiente.
+- **CA2:** Registrar la fecha y sala de la defensa y comprobar que ambas queden asociadas al Examen de Título.
+- **CA3:** Volver a consultar el examen y verificar que la fecha y sala registradas permanezcan disponibles.
+- **CA4:** Modificar la fecha o sala del examen, consultar nuevamente y comprobar que se muestren los datos vigentes.
+
+## HU-10 - Consultar anotaciones de una versión del Trabajo de Título
+
+**Pantalla:** `consultar-anotaciones.html`
+
+- **CA1:** Consultar una versión del Trabajo de Título y verificar que se muestren su contenido y las anotaciones asociadas.
+- **CA2:** Seleccionar una versión que posea anotaciones del Guía y comprobar que cada anotación muestre su contenido, autor y fecha.
+- **CA3:** Consultar versiones distintas y verificar que solo se muestren las anotaciones correspondientes a la versión seleccionada.
+- **CA4:** Consultar una versión que no posea anotaciones del Guía y comprobar que el sistema informe que no existen anotaciones disponibles.
+
+## HU-11 - Registrar nueva versión del Trabajo de Título
+
+**Pantalla:** `nueva-version.html`
+
+- **CA1:** Utilizar un Trabajo de Título en estado `En desarrollo`, ingresar contenido y registrar una nueva versión. Verificar que se almacene con fecha de entrega y número correlativo en formato de texto, por ejemplo `2.0`.
+- **CA2:** Utilizar un Trabajo de Título en estado `completado` e intentar registrar una nueva versión. Verificar que el sistema bloquee la acción e informe que no se permiten nuevas entregas.
+- **CA3:** Registrar una nueva versión en un trabajo que ya posea versiones anteriores y verificar que la nueva entrega se incorpore sin sobrescribir las anteriores.
+- **CA4:** Intentar registrar una versión con el contenido vacío y comprobar que el sistema rechace el registro e informe que el contenido es obligatorio.
 
 ---
 
@@ -554,7 +611,7 @@ Para revisar los contenedores Docker activos:
 docker ps
 ```
 
-Los servicios principales utilizan los siguientes puertos:
+Servicios utilizados:
 
 | Servicio | Puerto |
 |---|---:|
