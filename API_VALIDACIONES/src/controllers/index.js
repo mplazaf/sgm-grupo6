@@ -1011,7 +1011,6 @@ const getEvaluacionGuia = (req, res) => {
   );
 };
 
-
 // HU-06 CA1-CA4: historial cronológico de eventos y cambios de estado del Trabajo de Título.
 const getHistorialSeguimiento = (req, res) => {
   const trabajoId = req.params.id;
@@ -1041,113 +1040,171 @@ const getHistorialSeguimiento = (req, res) => {
   });
 };
 
-// HU-08
-
-// Obtener solo los trabajos con examen agendado que AÚN NO tienen nota
+// HU-08: Registrar y consultar resultados del Examen de Título
+// CA1, CA3 y CA4: Listar todos los exámenes registrados (con o sin nota)
 const getTrabajosConExamen = (req, res) => {
   const query = `
-    SELECT t.id, t.nombre, e.fecha AS fecha_examen, e.numero_intento, e.sala
-    FROM trabajo_de_titulo t
-    INNER JOIN examen_titulo e ON t.id = e.trabajo_id
-    WHERE e.resultado IS NULL 
-    AND e.id = (SELECT MAX(id) FROM examen_titulo WHERE trabajo_id = t.id)
+    SELECT
+      t.id AS trabajo_id,
+      t.nombre,
+      t.estado AS estado_trabajo,
+      e.id AS examen_id,
+      e.numero_intento,
+      DATE_FORMAT(e.fecha, '%Y-%m-%d') AS fecha_examen,
+      e.sala,
+      e.nota,
+      e.resultado,
+      e.fecha_resultado
+    FROM examen_titulo e
+    INNER JOIN trabajo_de_titulo t
+      ON t.id = e.trabajo_id
+    ORDER BY t.id ASC, e.numero_intento ASC
   `;
+
   database.query(query, (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Error al obtener lista' });
+    if (err) {
+      console.error('ERROR HU08 - LISTAR EXÁMENES:', err);
+      return res.status(500).json({ error: 'Error al obtener la lista' });
+    }
     return res.status(200).json(rows);
   });
 };
 
-// HU-08: Registrar el resultado evaluando la nota (>= 55)
+// CA1, CA2 y CA4: Registrar la nota de un examen específico
 const registrarResultadoExamen = (req, res) => {
   const trabajoId = Number(req.params.id);
-  const nota = Number(req.body.nota);
+  const examenId = Number(req.params.examenId);
+  const nota = Number(req.body?.nota);
 
-  if (!Number.isInteger(trabajoId) || trabajoId <= 0) return res.status(400).json({ error: 'ID inválido' });
-  if (isNaN(nota) || nota < 0 || nota > 100) return res.status(400).json({ error: 'Nota inválida' });
+  if (!Number.isInteger(trabajoId) || trabajoId <= 0) return res.status(400).json({ error: 'Identificador de Trabajo inválido' });
+  if (!Number.isInteger(examenId) || examenId <= 0) return res.status(400).json({ error: 'Identificador de examen inválido' });
+  if (req.body?.nota === undefined || req.body?.nota === null || req.body?.nota === '' || !Number.isFinite(nota) || nota < 0 || nota > 100) {
+    return res.status(400).json({ error: 'La nota debe ser un número entre 0 y 100' });
+  }
 
-  // Cumple CA1: Dado que se realizó el examen, queda indicado si fue aprobada o reprobada evaluando la nota.
-  const resultadoEvaluado = nota >= 55 ? 'aprobado' : 'reprobado';
+  const resultado = nota >= 55 ? 'aprobado' : 'reprobado';
 
   database.query(
-    `SELECT e.id AS examen_id, e.numero_intento, t.estado AS estado_actual 
-     FROM examen_titulo e 
-     INNER JOIN trabajo_de_titulo t ON t.id = e.trabajo_id 
-     WHERE e.trabajo_id = ? ORDER BY e.id DESC LIMIT 1`,
-    [trabajoId],
-    (err, resultados) => {
-      if (err) return res.status(500).json({ error: 'Error' });
-      if (!resultados[0]) return res.status(404).json({ error: 'No hay examen' });
+    `SELECT e.id AS examen_id, e.trabajo_id, e.numero_intento, e.nota, e.resultado, t.estado AS estado_actual 
+     FROM examen_titulo e INNER JOIN trabajo_de_titulo t ON t.id = e.trabajo_id 
+     WHERE e.id = ? AND e.trabajo_id = ? LIMIT 1`,
+    [examenId, trabajoId],
+    (err, examenes) => {
+      if (err) return res.status(500).json({ error: 'Error al consultar el examen' });
+      if (!examenes[0]) return res.status(404).json({ error: 'Examen no encontrado' });
 
-      const { examen_id, numero_intento, estado_actual } = resultados[0];
+      const examen = examenes[0];
 
-      // Cumple CA2: Dado que la defensa fue aprobada, el estado cambia a Finalizado.
-      let nuevoEstado = '';
-      if (resultadoEvaluado === 'aprobado') {
-        nuevoEstado = 'finalizado'; 
-      } else if (resultadoEvaluado === 'reprobado' && numero_intento === 1) {
-        nuevoEstado = 'segunda_oportunidad_pendiente';
-      } else if (resultadoEvaluado === 'reprobado' && numero_intento === 2) {
-        nuevoEstado = 'examen_reprobado';
+      // FIX: Ahora verifica que no sea ni NULL ni texto vacío
+      if (examen.resultado !== null && examen.resultado !== '') {
+        return res.status(409).json({ error: 'Este examen ya tiene una calificación registrada' });
       }
 
-      // Guardar resultado (Apoya CA1)
-      database.query(
-        `UPDATE examen_titulo SET resultado = ?, fecha_resultado = NOW() WHERE id = ?`,
-        [resultadoEvaluado, examen_id],
-        (err2) => {
-          if (err2) return res.status(500).json({ error: 'Error al guardar' });
-
-          // Actualizar estado del trabajo (CA2)
-          database.query(
-            `UPDATE trabajo_de_titulo SET estado = ? WHERE id = ?`,
-            [nuevoEstado, trabajoId],
-            (err3) => {
-              if (err3) return res.status(500).json({ error: 'Error al actualizar' });
-
-              // Cumple CA4, el cambio de estado queda registrado cronológicamente en el historial.
-              database.query(
-                `INSERT INTO historial_estado_trabajo (trabajo_id, estado_anterior, estado_nuevo, fecha_cambio) VALUES (?, ?, ?, NOW())`,
-                [trabajoId, estado_actual, nuevoEstado],
-                (err4) => {
-                  if (err4) return res.status(500).json({ error: 'Error historial' });
-                  return res.status(200).json({
-                    mensaje: `Examen registrado exitosamente como ${resultadoEvaluado.toUpperCase()} (Nota: ${nota}).`,
-                    nuevo_estado: nuevoEstado
-                  });
-                }
-              );
+      const validarSegundoIntento = (continuar) => {
+        if (Number(examen.numero_intento) !== 2) return continuar();
+        database.query(
+          `SELECT resultado FROM examen_titulo WHERE trabajo_id = ? AND numero_intento = 1 LIMIT 1`,
+          [trabajoId],
+          (errPrimero, primeros) => {
+            if (errPrimero) return res.status(500).json({ error: 'Error al validar la primera oportunidad' });
+            if (!primeros[0] || primeros[0].resultado !== 'reprobado') {
+              return res.status(409).json({ error: 'La segunda oportunidad requiere reprobar la primera' });
             }
-          );
+            continuar();
+          }
+        );
+      };
+
+      validarSegundoIntento(() => {
+        let nuevoEstado;
+        if (resultado === 'aprobado') {
+          nuevoEstado = 'finalizado';
+        } else if (Number(examen.numero_intento) === 1) {
+          nuevoEstado = 'segunda_oportunidad_pendiente';
+        } else {
+          nuevoEstado = 'examen_reprobado';
         }
-      );
+
+        // Actualiza asegurando que soporte NULL o vacío en el examen
+        database.query(
+          `UPDATE examen_titulo SET nota = ?, resultado = ?, fecha_resultado = NOW() 
+           WHERE id = ? AND trabajo_id = ? AND (resultado IS NULL OR resultado = '')`,
+          [nota, resultado, examenId, trabajoId],
+          (errUpdate, updateResult) => {
+            if (errUpdate) return res.status(500).json({ error: 'Error al guardar la calificación' });
+            if (updateResult.affectedRows !== 1) return res.status(409).json({ error: 'El examen ya fue calificado' });
+
+            database.query(
+              `UPDATE trabajo_de_titulo SET estado = ? WHERE id = ?`,
+              [nuevoEstado, trabajoId],
+              (errEstado) => {
+                if (errEstado) return res.status(500).json({ error: 'Error al actualizar el estado' });
+
+                if (examen.estado_actual === nuevoEstado) return responderResultado();
+
+                database.query(
+                  `INSERT INTO historial_estado_trabajo (trabajo_id, estado_anterior, estado_nuevo, fecha_cambio) 
+                   VALUES (?, ?, ?, NOW())`,
+                  [trabajoId, examen.estado_actual, nuevoEstado],
+                  (errHistorial) => {
+                    if (errHistorial) return res.status(500).json({ error: 'Error al registrar historial' });
+                    responderResultado();
+                  }
+                );
+
+                function responderResultado() {
+                  database.query(
+                    `SELECT id AS examen_id, trabajo_id, numero_intento, nota, resultado, fecha_resultado 
+                     FROM examen_titulo WHERE id = ?`,
+                    [examenId],
+                    (errFinal, rows) => {
+                      if (errFinal) return res.status(500).json({ error: 'Error al recuperar resultado' });
+                      return res.status(200).json({
+                        mensaje: resultado === 'aprobado' ? 'Examen aprobado correctamente' : 'Examen reprobado',
+                        ...rows[0],
+                        nuevo_estado: nuevoEstado
+                      });
+                    }
+                  );
+                }
+              }
+            );
+          }
+        );
+      });
     }
   );
 };
 
-// Cumple CA3, cuando se consulta posteriormente, se visualiza el resultado de la defensa y su fecha.
+// CA3: Consultar todos los resultados
 const getResultadoExamen = (req, res) => {
   const trabajoId = Number(req.params.id);
+  if (!Number.isInteger(trabajoId) || trabajoId <= 0) return res.status(400).json({ error: 'Identificador inválido' });
+
   database.query(
-    `SELECT id, numero_intento, fecha, sala, resultado, fecha_resultado 
-     FROM examen_titulo WHERE trabajo_id = ? ORDER BY numero_intento ASC`,
+    `SELECT t.id AS trabajo_id, t.nombre, t.estado AS estado_trabajo, e.id AS examen_id, e.numero_intento, DATE_FORMAT(e.fecha, '%Y-%m-%d') AS fecha, e.sala, e.nota, e.resultado, e.fecha_resultado 
+     FROM examen_titulo e INNER JOIN trabajo_de_titulo t ON t.id = e.trabajo_id 
+     WHERE e.trabajo_id = ? ORDER BY e.numero_intento ASC`,
     [trabajoId],
-    (err, examenes) => {
-      if (err) return res.status(500).json({ error: 'Error al consultar' });
-      return res.status(200).json(examenes);
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Error al consultar resultados' });
+      if (!rows.length) return res.status(404).json({ error: 'No hay exámenes registrados' });
+      return res.status(200).json(rows);
     }
   );
 };
 
-// Apoyo a CA4, consultar el historial cronológico de estados
+// CA4: Consultar historial
 const getHistorialEstados = (req, res) => {
   const trabajoId = Number(req.params.id);
+  if (!Number.isInteger(trabajoId) || trabajoId <= 0) return res.status(400).json({ error: 'Identificador inválido' });
+
   database.query(
-    `SELECT id, estado_anterior, estado_nuevo, fecha_cambio FROM historial_estado_trabajo WHERE trabajo_id = ? ORDER BY fecha_cambio DESC`,
+    `SELECT id, trabajo_id, estado_anterior, estado_nuevo, fecha_cambio FROM historial_estado_trabajo WHERE trabajo_id = ? ORDER BY fecha_cambio ASC, id ASC`,
     [trabajoId],
-    (err, historial) => {
-      if (err) return res.status(500).json({ error: 'Error al consultar' });
-      return res.status(200).json(historial);
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Error al consultar historial' });
+      return res.status(200).json(rows);
     }
   );
 };
