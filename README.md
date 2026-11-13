@@ -26,7 +26,7 @@ La documentación del proyecto, incluyendo historias de usuario, modelo de domin
 El video final de demostración del sistema debe mostrar las historias de usuario comprometidas, su funcionamiento y la trazabilidad con los criterios de aceptación.
 
 **Enlace del video:**  
-[PENDIENTE - PEGAR AQUÍ EL LINK DEL VIDEO FINAL]
+[[Video de Proyecto Finalizado](https://usmcl-my.sharepoint.com/:v:/g/personal/scontrerasa_usm_cl/IQALNcQ6H4QNR6grCEjtz8JdAQjkklRwaPVIBsNu4CIuVTU)]
 
 ---
 
