@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Evaluación del Correferente</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>SGM · Trabajos de Título</h2>
+    <a href="seguimiento.html">Seguimiento (Memorista)</a>
+    <a href="nueva-version.html">Registrar versión (Memorista)</a>
+    <a href="consultar-anotaciones.html">Consultar anotaciones (Memorista)</a>
+    <a href="anotacion.html">Anotaciones (Guía)</a>
+    <a href="evaluacion.html">Evaluación final (Guía)</a>
+    <a href="evaluacion-correferente.html">Evaluación (Correferente)</a>
+    <a href="propuestas.html">Propuestas (Jefe de Carrera)</a>
+    <a href="registrar-examen.html">Examen de Título (Secretaria)</a>
+  </div>
+
+  <div class="content">
+    <h1>Evaluación del Correferente</h1>
+    <p class="subtitle">
+      Consulta los antecedentes del Examen de Título y registra la calificación del Correferente.
+    </p>
+
+    <div class="card">
+      <label for="trabajoId">ID del Trabajo de Título:</label>
+      <input type="number" id="trabajoId" min="1" placeholder="Ej: 1">
+      <button onclick="cargarAntecedentes()">Consultar antecedentes</button>
+    </div>
+
+    <div id="antecedentes" style="display:none;">
+
+      <div class="card">
+        <span class="eyebrow">Trabajo de Título</span>
+        <h2 id="trabajoNombre" class="section-title"></h2>
+        <p><strong>Estado actual:</strong> <span id="trabajoEstado"></span></p>
+      </div>
+
+      <!-- HU-05 CA1: revisar la versión final del Trabajo de Título -->
+      <div class="card">
+        <span class="eyebrow">Versión final</span>
+        <h2 id="versionNumero" class="section-title"></h2>
+        <p><strong>Fecha de entrega:</strong> <span id="versionFecha"></span></p>
+        <h3>Contenido</h3>
+        <p id="versionContenido"></p>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Exámenes de Título registrados</h2>
+        <div id="listaExamenes"></div>
+      </div>
+
+      <!-- HU-05 CA3 y CA4: mostrar nota, fecha, tipo y distinguir participantes -->
+      <div class="card" id="evaluacionesCard" style="display:none;">
+        <h2 class="section-title">Evaluaciones asociadas al Examen de Título</h2>
+        <div id="listaEvaluaciones"></div>
+      </div>
+
+      <!-- HU-05 CA2: registrar evaluación del Correferente -->
+      <div class="card">
+        <h2 class="section-title">Registrar evaluación del Correferente</h2>
+
+        <label for="examenId">Examen de Título:</label>
+        <select id="examenId"></select>
+
+        <label for="correferenteId">ID del Correferente:</label>
+        <input type="number" id="correferenteId" min="1" placeholder="Ej: 1">
+
+        <label for="calificacion">Calificación (1.0 - 100.0):</label>
+        <input type="number" id="calificacion" min="1" max="100" step="0.1" placeholder="Ej: 82.0">
+
+        <button onclick="registrarEvaluacion()">Registrar evaluación</button>
+
+        <p class="success" id="success"></p>
+      </div>
+
+    </div>
+
+    <p class="error" id="error"></p>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8081';
+
+    function fecha(valor) {
+      if (!valor) return '';
+      return new Date(valor).toLocaleString('es-CL');
+    }
+
+    function fechaCorta(valor) {
+      if (!valor) return '';
+      return new Date(valor).toLocaleDateString('es-CL', { timeZone: 'UTC' });
+    }
+
+    async function cargarAntecedentes() {
+      const trabajoId = document.getElementById('trabajoId').value;
+      const error = document.getElementById('error');
+      const success = document.getElementById('success');
+
+      error.textContent = '';
+      success.textContent = '';
+      document.getElementById('antecedentes').style.display = 'none';
+      document.getElementById('evaluacionesCard').style.display = 'none';
+
+      if (!trabajoId) {
+        error.textContent = 'Ingresa el ID de un Trabajo de Título.';
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${API}/api/trabajos/${trabajoId}/antecedentes-correferente`
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.error || 'No fue posible consultar los antecedentes.');
+        }
+
+        document.getElementById('trabajoNombre').textContent = data.trabajo.nombre;
+        document.getElementById('trabajoEstado').textContent = data.trabajo.estado;
+
+        document.getElementById('versionNumero').textContent =
+          `Versión ${data.version_final.numero_version}`;
+        document.getElementById('versionFecha').textContent =
+          fechaCorta(data.version_final.fecha_entrega);
+        document.getElementById('versionContenido').textContent =
+          data.version_final.contenido;
+
+        const listaExamenes = document.getElementById('listaExamenes');
+        const selector = document.getElementById('examenId');
+
+        listaExamenes.innerHTML = '';
+        selector.innerHTML = '<option value="">Selecciona una oportunidad</option>';
+
+        // HU-05 CA2, CA3 y CA4:
+        // El backend devuelve las evaluaciones dentro de cada examen.
+        const listaEvaluaciones = document.getElementById('listaEvaluaciones');
+        listaEvaluaciones.innerHTML = '';
+
+        let hayEvaluaciones = false;
+
+        data.examenes.forEach(examen => {
+          const item = document.createElement('div');
+          item.className = 'annotation';
+
+          const resultadoTexto = examen.resultado || 'pendiente';
+
+          item.innerHTML = `
+            <p><strong>Oportunidad ${examen.numero_intento}</strong></p>
+            <p><strong>Fecha:</strong> ${examen.fecha || '-'}</p>
+            <p><strong>Sala:</strong> ${examen.sala || '-'}</p>
+            <p><strong>Resultado:</strong> ${resultadoTexto}</p>
+          `;
+
+          listaExamenes.appendChild(item);
+
+          const evaluaciones = examen.evaluaciones || [];
+
+          const yaEvaluadoPorCorreferente = evaluaciones.some(
+            evaluacion => evaluacion.tipo_evaluacion === 'Correferente'
+          );
+
+          // HU-05 CA2:
+          // Bloquear oportunidades ya evaluadas por el Correferente.
+          const option = document.createElement('option');
+          option.value = examen.id;
+
+          if (yaEvaluadoPorCorreferente) {
+            option.textContent =
+              `Oportunidad ${examen.numero_intento} · Ya evaluada por Correferente`;
+            option.disabled = true;
+          } else {
+            option.textContent =
+              `Oportunidad ${examen.numero_intento} · ${examen.fecha || 'Sin fecha'} · ${examen.sala || 'Sin sala'}`;
+          }
+
+          selector.appendChild(option);
+
+          // HU-05 CA3 y CA4:
+          // Mostrar nota, fecha y tipo de evaluación por oportunidad.
+          evaluaciones.forEach(evaluacion => {
+            hayEvaluaciones = true;
+
+            const evaluacionItem = document.createElement('div');
+            evaluacionItem.className = 'annotation';
+            evaluacionItem.innerHTML = `
+              <p><strong>${evaluacion.tipo_evaluacion}</strong></p>
+              <p><strong>Oportunidad de examen:</strong> ${examen.numero_intento}</p>
+              <p><strong>ID evaluador:</strong> ${evaluacion.evaluador_id}</p>
+              <p><strong>Calificación:</strong> ${evaluacion.calificacion}</p>
+              <p><strong>Fecha:</strong> ${fecha(evaluacion.fecha_evaluacion)}</p>
+            `;
+
+            listaEvaluaciones.appendChild(evaluacionItem);
+          });
+        });
+
+        document.getElementById('evaluacionesCard').style.display =
+          hayEvaluaciones ? 'block' : 'none';
+
+        document.getElementById('antecedentes').style.display = 'block';
+
+      } catch (err) {
+        error.textContent = err.message;
+      }
+    }
+
+    async function registrarEvaluacion() {
+      const examenId = document.getElementById('examenId').value;
+      const correferenteId = document.getElementById('correferenteId').value;
+      const calificacion = document.getElementById('calificacion').value;
+      const error = document.getElementById('error');
+      const success = document.getElementById('success');
+
+      error.textContent = '';
+      success.textContent = '';
+
+      if (!examenId || !correferenteId || !calificacion) {
+        error.textContent = 'Completa todos los datos de la evaluación.';
+        return;
+      }
+
+      if (Number(correferenteId) <= 0) {
+        error.textContent = 'Ingresa un ID de Correferente válido.';
+        return;
+      }
+
+      if (Number(calificacion) < 1 || Number(calificacion) > 100) {
+        error.textContent = 'La calificación debe estar entre 1.0 y 100.0.';
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${API}/api/examenes/${examenId}/evaluacion-correferente`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              evaluador_id: Number(correferenteId),
+              calificacion: Number(calificacion)
+            })
+          }
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.error || 'No fue posible registrar la evaluación.');
+        }
+
+        document.getElementById('calificacion').value = '';
+
+        await cargarAntecedentes();
+
+        success.textContent =
+          data.mensaje || 'Evaluación del Correferente registrada correctamente.';
+
+      } catch (err) {
+        error.textContent = err.message;
+      }
+    }
+  </script>
+
+</body>
+</html>
