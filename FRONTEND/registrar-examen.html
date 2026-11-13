@@ -8,12 +8,13 @@
 </head>
 <body>
 
-  <div class="sidebar"></div>
+  <div class="sidebar">
     <h2>SGM · Trabajos de Título</h2>
     <a href="seguimiento.html">Seguimiento (Memorista)</a>
     <a href="anotacion.html">Anotaciones (Guía)</a>
     <a href="propuestas.html">Propuestas (Jefe de Carrera)</a>
     <a href="nueva-version.html">Registrar versión (Memorista)</a>
+    <a href="historial.html">Historial de seguimiento (Memorista)</a>
 
     <a href="revision-propuesta.html">Revisión de Propuesta (Profesor TT1)</a>
     <a href="consultar-anotaciones.html">Consultar anotaciones (Memorista)</a>
@@ -61,10 +62,9 @@
 
       <h3>Exámenes registrados</h3>
       <div id="listaExamenes"></div>
-      <p class="subtitle">
-        La autorización académica para rendir el examen
-        depende de las evaluaciones correspondientes.
-        Su verificación automática está pendiente de integración.
+      <p>
+        <strong>Habilitación del examen:</strong>
+        <span id="estadoHabilitacion"></span>
       </p>
     </div>
 
@@ -100,7 +100,281 @@
     <p id="mensajeExito" class="success"></p>
     <p id="mensajeError" class="error"></p>
   </div>
-  <script src="registrar-examen.js"></script>
+  <script>
+    const API = 'http://localhost:8081';
+
+    let trabajoSeleccionado = null;
+    let examenesRegistrados = [];
+
+    const formBuscar = document.getElementById('formBuscar');
+    const formExamen = document.getElementById('formExamen');
+    const selectorIntento = document.getElementById('numeroIntento');
+
+    const fechaDefensa = document.getElementById('fechaDefensa');
+
+    // Obtener la fecha actual en formato YYYY-MM-DD
+    function obtenerFechaActual() {
+      const hoy = new Date();
+
+      const anio = hoy.getFullYear();
+      const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+      const dia = String(hoy.getDate()).padStart(2, '0');
+
+      return `${anio}-${mes}-${dia}`;
+    }
+
+    // Validar que la fecha corresponda a lunes-viernes
+    function esDiaHabil(fecha) {
+      const dia = new Date(`${fecha}T12:00:00`).getDay();
+
+      return dia >= 1 && dia <= 5;
+    }
+
+    // Establecer la fecha mínima permitida
+    fechaDefensa.min = obtenerFechaActual();
+
+    const detalle = document.getElementById('detalle');
+    const registro = document.getElementById('registro');
+    const mensajeExito = document.getElementById('mensajeExito');
+    const mensajeError = document.getElementById('mensajeError');
+
+    function limpiarMensajes() {
+      mensajeExito.textContent = '';
+      mensajeError.textContent = '';
+    }
+
+    async function solicitarJSON(url, opciones = {}) {
+      const respuesta = await fetch(url, opciones);
+      const datos = await respuesta.json().catch(() => ({}));
+
+      if (!respuesta.ok) {
+        throw new Error(datos.error || 'Error al comunicarse con la API');
+      }
+
+      return datos;
+    }
+
+    // HU-09 CA1 y CA3: consultar el trabajo y sus exámenes.
+    async function consultarTrabajo(id) {
+      limpiarMensajes();
+
+      trabajoSeleccionado = null;
+      examenesRegistrados = [];
+      detalle.style.display = 'none';
+      registro.style.display = 'none';
+
+      try {
+        const datos = await solicitarJSON(
+          `${API}/api/trabajos/${id}/examen`
+        );
+
+        trabajoSeleccionado = datos.trabajo_id;
+        examenesRegistrados = datos.examenes || [];
+
+        document.getElementById('nombreTrabajo').textContent =
+          datos.trabajo_nombre;
+
+        document.getElementById('estadoTrabajo').textContent =
+          datos.estado_trabajo;
+
+        document.getElementById('estadoHito').textContent =
+          datos.hito_examen_id === null
+            ? 'No registrado'
+            : datos.estado_hito_examen;
+    
+      const habilitado = datos.habilitado_examen === true;
+
+      // Comprobar si HU-08 reprobó la primera defensa
+      const primeraReprobada = examenesRegistrados.some(
+        examen =>
+          Number(examen.numero_intento) === 1 &&
+          examen.resultado === 'reprobado'
+      );
+
+      // Determinar si corresponde programar la segunda oportunidad
+      const segundaHabilitada =
+        datos.estado_trabajo === 'segunda_oportunidad_pendiente' &&
+        primeraReprobada;
+
+      // Seleccionar automáticamente la oportunidad correspondiente
+      selectorIntento.value = segundaHabilitada ? '2' : '1';
+
+      // Impedir seleccionar una oportunidad no autorizada
+      selectorIntento.querySelector('option[value="1"]').disabled =
+        segundaHabilitada;
+
+      selectorIntento.querySelector('option[value="2"]').disabled =
+        !segundaHabilitada;
+
+      // Mostrar el estado de habilitación
+      document.getElementById('estadoHabilitacion').textContent =
+        !habilitado
+          ? 'No habilitado para programar el examen'
+          : segundaHabilitada
+            ? 'Habilitado para programar la segunda oportunidad'
+            : 'Habilitado para programar la primera oportunidad';
+
+      mostrarExamenes();
+      cargarDatosIntento();
+
+      detalle.style.display = 'block';
+      registro.style.display = habilitado ? 'block' : 'none';
+
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      }
+    }
+
+    function mostrarExamenes() {
+      const contenedor = document.getElementById('listaExamenes');
+      contenedor.replaceChildren();
+
+      if (examenesRegistrados.length === 0) {
+        const mensaje = document.createElement('p');
+        mensaje.textContent = 'No hay exámenes programados.';
+        contenedor.appendChild(mensaje);
+        return;
+      }
+
+      const tabla = document.createElement('table');
+
+      const encabezado = document.createElement('tr');
+
+      ['Oportunidad', 'Fecha', 'Sala', 'Resultado'].forEach(texto => {
+        const th = document.createElement('th');
+        th.textContent = texto;
+        encabezado.appendChild(th);
+      });
+
+      tabla.appendChild(encabezado);
+
+      examenesRegistrados.forEach(examen => {
+        const fila = document.createElement('tr');
+
+        const valores = [
+          examen.numero_intento === 1 ? 'Primera' : 'Segunda',
+          examen.fecha,
+          examen.sala,
+          examen.resultado === 'aprobado'
+            ? 'Aprobado'
+            : examen.resultado === 'reprobado'
+              ? 'Reprobado'
+              : 'Pendiente de evaluación'
+        ];
+
+        valores.forEach(valor => {
+          const celda = document.createElement('td');
+          celda.textContent = valor;
+          fila.appendChild(celda);
+        });
+
+        tabla.appendChild(fila);
+      });
+
+      contenedor.appendChild(tabla);
+    }
+
+    // CA4: precargar fecha y sala si el intento ya existe.
+    function cargarDatosIntento() {
+      const intento = Number(selectorIntento.value);
+
+      const examen = examenesRegistrados.find(
+        item => item.numero_intento === intento
+      );
+
+      document.getElementById('fechaDefensa').value =
+        examen ? examen.fecha : '';
+
+      document.getElementById('salaDefensa').value =
+        examen ? examen.sala : '';
+    }
+
+    formBuscar.addEventListener('submit', async evento => {
+      evento.preventDefault();
+
+      const id = Number(document.getElementById('trabajoId').value);
+
+      if (!Number.isInteger(id) || id <= 0) {
+        limpiarMensajes();
+        mensajeError.textContent = 'Ingrese un identificador válido.';
+        return;
+      }
+
+      await consultarTrabajo(id);
+    });
+
+    selectorIntento.addEventListener('change', () => {
+      cargarDatosIntento();
+      limpiarMensajes();
+    });
+
+    // HU-09 CA2 y CA4: registrar o actualizar un intento.
+    formExamen.addEventListener('submit', async evento => {
+      evento.preventDefault();
+      limpiarMensajes();
+
+      if (trabajoSeleccionado === null) {
+        mensajeError.textContent = 'Primero debe consultar un trabajo.';
+        return;
+      }
+
+      const intento = Number(selectorIntento.value);
+
+      const datos = {
+        numero_intento: intento,
+        fecha: document.getElementById('fechaDefensa').value,
+        sala: document.getElementById('salaDefensa').value.trim()
+      };
+
+      // Validar que la fecha no sea anterior a hoy
+      if (datos.fecha < obtenerFechaActual()) {
+        mensajeError.textContent =
+          'La fecha de defensa no puede ser anterior a la fecha actual.';
+        return;
+      }
+
+      // Validar que sea de lunes a viernes
+      if (!esDiaHabil(datos.fecha)) {
+        mensajeError.textContent =
+          'La defensa debe programarse de lunes a viernes.';
+        return;
+      }
+
+      const boton = formExamen.querySelector('button[type="submit"]');
+      boton.disabled = true;
+
+      try {
+        await solicitarJSON(
+          `${API}/api/trabajos/${trabajoSeleccionado}/examen`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(datos)
+          }
+        );
+
+        const actualizados = await solicitarJSON(
+          `${API}/api/trabajos/${trabajoSeleccionado}/examen`
+        );
+
+        examenesRegistrados = actualizados.examenes || [];
+
+        mostrarExamenes();
+        cargarDatosIntento();
+
+        mensajeExito.textContent =
+          `Antecedentes del intento ${intento} guardados correctamente.`;
+
+      } catch (error) {
+        mensajeError.textContent = error.message;
+
+      } finally {
+        boton.disabled = false;
+      }
+    });
+  </script>
 
 </body>
 </html>
