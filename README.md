@@ -686,7 +686,7 @@ POST /api/examenes/:id/evaluacion-correferente
 
 ---
 
-**# Guía de prueba
+# Guía de prueba
 
 Esta guía permite revisar las historias de usuario implementadas usando los datos iniciales cargados por database/init.sql.
 
